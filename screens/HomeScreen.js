@@ -1,86 +1,125 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  Button, 
-  StyleSheet, 
-  ActivityIndicator, 
   Alert,
   ScrollView,
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function HomeScreen({ navigation }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+import styles from '../styles/HomeStyles'
+
+export default function HomeScreen({ navigation, userData }) {
+  const [user, setUser] = useState(userData);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [todayMood, setTodayMood] = useState(null);
+  const [stats, setStats] = useState({
+    testsCompleted: 0,
+    avgSleepHours: 0,
+    moodScore: 0
+  });
 
-  // Моковые данные пользователя
-  const mockUser = {
-    id: 1,
-    name: 'Алексей',
-    age: 15,
-    riskLevel: 'умеренный',
-    riskPoints: 2,
-    lastCheck: '2024-01-15',
-    nextCheck: '2024-01-22',
-    psychologist: 'Иванова М.П.',
-    contact: '+7 (999) 123-45-67'
-  };
-
-  // Варианты настроения для сегодня
   const moodOptions = [
-    { id: 1, emoji: '😊', label: 'Отлично', value: 'great' },
-    { id: 2, emoji: '🙂', label: 'Хорошо', value: 'good' },
-    { id: 3, emoji: '😐', label: 'Нормально', value: 'neutral' },
-    { id: 4, emoji: '😔', label: 'Плохо', value: 'bad' },
-    { id: 5, emoji: '😢', label: 'Очень плохо', value: 'very_bad' },
-  ];
-
-  // Моковые данные для графиков/статистики
-  const weeklyMoodData = [
-    { day: 'Пн', mood: 'good' },
-    { day: 'Вт', mood: 'great' },
-    { day: 'Ср', mood: 'neutral' },
-    { day: 'Чт', mood: 'bad' },
-    { day: 'Пт', mood: 'good' },
-    { day: 'Сб', mood: 'great' },
-    { day: 'Вс', mood: 'good' },
-  ];
-
-  // Моковые рекомендации
-  const recommendations = [
-    'Попробуйте дыхательные упражнения',
-    'Рекомендуем прогулку на свежем воздухе',
-    'Запишите 3 хорошие вещи за сегодня',
-    'Позвоните другу или близкому человеку'
+    { id: 1, emoji: '😊', label: 'Отлично', value: 5, color: '#2ecc71' },
+    { id: 2, emoji: '🙂', label: 'Хорошо', value: 4, color: '#27ae60' },
+    { id: 3, emoji: '😐', label: 'Нормально', value: 3, color: '#f39c12' },
+    { id: 4, emoji: '😔', label: 'Плохо', value: 2, color: '#e67e22' },
+    { id: 5, emoji: '😢', label: 'Очень плохо', value: 1, color: '#e74c3c' },
   ];
 
   useEffect(() => {
-    // Имитация загрузки данных
-    const timer = setTimeout(() => {
-      setUser(mockUser);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    loadUserData();
+    loadStats();
   }, []);
 
-  const handleMoodSelect = (mood) => {
-    setTodayMood(mood);
-    Alert.alert(
-      'Настроение сохранено',
-      `Вы отметили: ${mood.emoji} ${mood.label}`,
-      [{ text: 'OK' }]
-    );
-    
-    // Здесь можно добавить логику сохранения в локальное хранилище
-    // AsyncStorage.setItem('todayMood', JSON.stringify(mood));
+  const loadUserData = async () => {
+    try {
+      const userJson = await AsyncStorage.getItem('currentUser');
+      if (userJson) {
+        setUser(JSON.parse(userJson));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
   };
 
-  const handleQuickTest = () => {
-    navigation.navigate('Быстрый тест');
+  const loadStats = async () => {
+    try {
+      const testsJson = await AsyncStorage.getItem(`tests_${user?.id}`);
+      const sleepJson = await AsyncStorage.getItem(`sleep_${user?.id}`);
+      const moodJson = await AsyncStorage.getItem(`mood_${user?.id}`);
+      
+      const tests = testsJson ? JSON.parse(testsJson) : [];
+      const sleepData = sleepJson ? JSON.parse(sleepJson) : [];
+      const moodData = moodJson ? JSON.parse(moodJson) : [];
+      
+      const avgSleep = sleepData.length > 0 
+        ? sleepData.reduce((sum, day) => sum + day.hours, 0) / sleepData.length 
+        : 0;
+      
+      const avgMood = moodData.length > 0
+        ? moodData.reduce((sum, entry) => sum + entry.value, 0) / moodData.length
+        : 0;
+      
+      setStats({
+        testsCompleted: tests.length,
+        avgSleepHours: Math.round(avgSleep * 10) / 10,
+        moodScore: Math.round(avgMood * 10) / 10
+      });
+      
+      // Загружаем сегодняшнее настроение
+      const today = new Date().toDateString();
+      const todayMoodEntry = moodData.find(entry => 
+        new Date(entry.date).toDateString() === today
+      );
+      
+      if (todayMoodEntry) {
+        const moodOption = moodOptions.find(m => m.value === todayMoodEntry.value);
+        setTodayMood(moodOption);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadUserData(), loadStats()]);
+    setRefreshing(false);
+  };
+
+  const handleMoodSelect = async (mood) => {
+    try {
+      setTodayMood(mood);
+      
+      const moodData = {
+        date: new Date().toISOString(),
+        value: mood.value,
+        label: mood.label,
+        emoji: mood.emoji
+      };
+      
+      const moodJson = await AsyncStorage.getItem(`mood_${user?.id}`);
+      let moodEntries = moodJson ? JSON.parse(moodJson) : [];
+      
+      // Удаляем запись за сегодня, если она есть
+      const today = new Date().toDateString();
+      moodEntries = moodEntries.filter(entry => 
+        new Date(entry.date).toDateString() !== today
+      );
+      
+      moodEntries.push(moodData);
+      await AsyncStorage.setItem(`mood_${user?.id}`, JSON.stringify(moodEntries));
+      
+      Alert.alert('Настроение сохранено', `Вы отметили: ${mood.emoji} ${mood.label}`);
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось сохранить настроение');
+    }
   };
 
   const handleEmergency = () => {
@@ -88,88 +127,74 @@ export default function HomeScreen({ navigation }) {
       'Экстренная помощь',
       'Телефон доверия: 8-800-2000-122\n\nПомощь психолога доступна 24/7',
       [
-        { text: 'Позвонить', onPress: () => Linking.openURL('tel:88002000122') },
+        { text: 'Позвонить', onPress: () => console.log('Emergency call') },
+        { text: 'Чат с психологом', onPress: () => navigation.navigate('Psychologist') },
         { text: 'Отмена', style: 'cancel' }
       ]
     );
   };
 
-  const getRiskColor = (points) => {
-    if (points === 0) return '#2ecc71'; // зеленый
-    if (points <= 2) return '#f39c12'; // оранжевый
-    return '#e74c3c'; // красный
-  };
-
-  const getMoodColor = (mood) => {
-    switch(mood) {
-      case 'great': return '#2ecc71';
-      case 'good': return '#27ae60';
-      case 'neutral': return '#f39c12';
-      case 'bad': return '#e67e22';
-      case 'very_bad': return '#e74c3c';
+  const getRiskColor = (level) => {
+    switch (level?.toLowerCase()) {
+      case 'низкий': return '#2ecc71';
+      case 'умеренный': return '#f39c12';
+      case 'высокий': return '#e74c3c';
       default: return '#95a5a6';
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={styles.loadingText}>Загрузка данных...</Text>
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Заголовок и приветствие */}
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Приветствие */}
         <View style={styles.header}>
-          <Text style={styles.title}>RiskDetect</Text>
-          <Text style={styles.greeting}>Привет, {user.name}!</Text>
-          <Text style={styles.subtitle}>Мониторинг психологического состояния</Text>
+          <View>
+            <Text style={styles.greeting}>Привет, {user?.name?.split(' ')[0] || 'Пользователь'}!</Text>
+            <Text style={styles.date}>{new Date().toLocaleDateString('ru-RU', { 
+              weekday: 'long', 
+              day: 'numeric', 
+              month: 'long' 
+            })}</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.emergencyIcon}
+            onPress={handleEmergency}
+          >
+            <Ionicons name="alert-circle" size={32} color="#e74c3c" />
+          </TouchableOpacity>
         </View>
 
-        {/* Карточка статуса */}
-        <View style={styles.statusCard}>
-          <Text style={styles.cardTitle}>Текущий статус</Text>
-          
-          <View style={styles.statusRow}>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Уровень риска</Text>
-              <View style={[styles.riskBadge, { backgroundColor: getRiskColor(user.riskPoints) }]}>
-                <Text style={styles.riskText}>{user.riskLevel}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Попыток самоповреждений</Text>
-              <Text style={[styles.riskPoints, { color: getRiskColor(user.riskPoints) }]}>
-                {user.riskPoints}
-              </Text>
+        {/* Риск статус */}
+        <TouchableOpacity 
+          style={[styles.riskCard, { borderLeftColor: getRiskColor(user?.riskLevel) }]}
+          onPress={() => navigation.navigate('Statistics')}
+        >
+          <View style={styles.riskHeader}>
+            <Text style={styles.riskTitle}>Уровень риска</Text>
+            <View style={[styles.riskBadge, { backgroundColor: getRiskColor(user?.riskLevel) }]}>
+              <Text style={styles.riskBadgeText}>{user?.riskLevel || 'низкий'}</Text>
             </View>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Последняя проверка:</Text>
-            <Text style={styles.infoValue}>{user.lastCheck}</Text>
+          <Text style={styles.riskDescription}>
+            {user?.riskLevel === 'низкий' ? 'Ваше состояние стабильно. Продолжайте следить за собой.' :
+             user?.riskLevel === 'умеренный' ? 'Рекомендуется обратить внимание на свое состояние.' :
+             'Рекомендуется немедленно обратиться к психологу.'}
+          </Text>
+          <View style={styles.riskFooter}>
+            <Text style={styles.riskLink}>Подробная статистика →</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Следующая проверка:</Text>
-            <Text style={styles.infoValue}>{user.nextCheck}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Ваш психолог:</Text>
-            <Text style={styles.infoValue}>{user.psychologist}</Text>
-          </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Быстрый опрос настроения */}
+        {/* Настроение */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Как вы себя чувствуете сегодня?</Text>
-          <Text style={styles.cardSubtitle}>Выберите вариант:</Text>
+          <Text style={styles.cardTitle}>Как вы себя чувствуете?</Text>
+          <Text style={styles.cardSubtitle}>Выберите ваше настроение сегодня</Text>
           
           <View style={styles.moodContainer}>
             {moodOptions.map((mood) => (
@@ -177,364 +202,115 @@ export default function HomeScreen({ navigation }) {
                 key={mood.id}
                 style={[
                   styles.moodButton,
-                  todayMood?.id === mood.id && styles.moodButtonSelected,
-                  { backgroundColor: getMoodColor(mood.value) }
+                  todayMood?.id === mood.id && styles.moodButtonSelected
                 ]}
                 onPress={() => handleMoodSelect(mood)}
               >
-                <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                <View style={[styles.moodEmojiContainer, { backgroundColor: mood.color + '20' }]}>
+                  <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                </View>
                 <Text style={styles.moodLabel}>{mood.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Недельная статистика настроения */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Настроение за неделю</Text>
-          <View style={styles.weekChart}>
-            {weeklyMoodData.map((item, index) => (
-              <View key={index} style={styles.chartColumn}>
-                <View 
-                  style={[
-                    styles.chartBar,
-                    { 
-                      height: item.mood === 'great' ? 80 : 
-                              item.mood === 'good' ? 60 : 
-                              item.mood === 'neutral' ? 40 : 
-                              item.mood === 'bad' ? 20 : 10,
-                      backgroundColor: getMoodColor(item.mood)
-                    }
-                  ]}
-                />
-                <Text style={styles.chartLabel}>{item.day}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Рекомендации */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Персональные рекомендации</Text>
-          {recommendations.map((item, index) => (
-            <View key={index} style={styles.recommendationItem}>
-              <Text style={styles.recommendationBullet}>•</Text>
-              <Text style={styles.recommendationText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Основные кнопки навигации */}
-        <View style={styles.buttonGrid}>
+        {/* Статистика */}
+        <View style={styles.statsRow}>
           <TouchableOpacity 
-            style={styles.navButton}
-            onPress={() => navigation.navigate('Профиль')}
+            style={[styles.statCard, { backgroundColor: '#3498db20' }]}
+            onPress={() => navigation.navigate('Statistics')}
           >
-            <Text style={styles.navButtonEmoji}>👤</Text>
-            <Text style={styles.navButtonText}>Профиль</Text>
+            <Ionicons name="document-text" size={28} color="#3498db" />
+            <Text style={styles.statNumber}>{stats.testsCompleted}</Text>
+            <Text style={styles.statLabel}>Тестов пройдено</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
-            style={styles.navButton}
+            style={[styles.statCard, { backgroundColor: '#9b59b620' }]}
             onPress={() => navigation.navigate('Сон')}
           >
-            <Text style={styles.navButtonEmoji}>😴</Text>
-            <Text style={styles.navButtonText}>Сон</Text>
+            <Ionicons name="moon" size={28} color="#9b59b6" />
+            <Text style={styles.statNumber}>{stats.avgSleepHours} ч</Text>
+            <Text style={styles.statLabel}>Сон в среднем</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
-            style={styles.navButton}
-            onPress={() => navigation.navigate('Тесты')}
-          >
-            <Text style={styles.navButtonEmoji}>📊</Text>
-            <Text style={styles.navButtonText}>Тесты</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.navButton}
+            style={[styles.statCard, { backgroundColor: '#e67e2220' }]}
             onPress={() => navigation.navigate('Дневник')}
           >
-            <Text style={styles.navButtonEmoji}>📝</Text>
-            <Text style={styles.navButtonText}>Дневник</Text>
+            <Ionicons name="happy" size={28} color="#e67e22" />
+            <Text style={styles.statNumber}>{stats.moodScore}</Text>
+            <Text style={styles.statLabel}>Настроение</Text>
           </TouchableOpacity>
         </View>
 
         {/* Быстрые действия */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.testButton]}
-            onPress={handleQuickTest}
-          >
-            <Text style={styles.actionButtonText}>Пройти быстрый тест</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.emergencyButton]}
-            onPress={handleEmergency}
-          >
-            <Text style={styles.actionButtonText}>Экстренная помощь</Text>
-          </TouchableOpacity>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Быстрые действия</Text>
+          
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => navigation.navigate('Тесты')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#2ecc7120' }]}>
+                <Ionicons name="help-circle" size={24} color="#2ecc71" />
+              </View>
+              <Text style={styles.quickActionText}>Пройти тест</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => navigation.navigate('Journal')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#3498db20' }]}>
+                <Ionicons name="book" size={24} color="#3498db" />
+              </View>
+              <Text style={styles.quickActionText}>Дневник</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => navigation.navigate('Psychologist')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#9b59b620' }]}>
+                <Ionicons name="people" size={24} color="#9b59b6" />
+              </View>
+              <Text style={styles.quickActionText}>Психолог</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => navigation.navigate('Scan')}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#e67e2220' }]}>
+                <Ionicons name="qr-code" size={24} color="#e67e22" />
+              </View>
+              <Text style={styles.quickActionText}>Сканер</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Информация о системе */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Система RiskDetect анализирует ваше состояние и предоставляет рекомендации. 
-            Данные обрабатываются анонимно.
+        {/* Рекомендация дня */}
+        <View style={[styles.card, styles.recommendationCard]}>
+          <View style={styles.recommendationHeader}>
+            <Ionicons name="bulb" size={24} color="#f39c12" />
+            <Text style={styles.recommendationTitle}>Рекомендация дня</Text>
+          </View>
+          <Text style={styles.recommendationText}>
+            Сделайте 5 глубоких вдохов. Это поможет снизить уровень стресса и улучшить концентрацию.
           </Text>
-          <Text style={styles.version}>Версия 1.0.0</Text>
+        </View>
+
+        {/* Мотивация */}
+        <View style={styles.quoteCard}>
+          <Text style={styles.quoteText}>
+            "Забота о себе — это не эгоизм, а необходимость."
+          </Text>
+          <Text style={styles.quoteAuthor}>— RiskDetect</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#7f8c8d',
-  },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2ecc71',
-    marginBottom: 8,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statusCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 12,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginBottom: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  statusItem: {
-    alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    marginBottom: 6,
-  },
-  riskBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    minWidth: 100,
-  },
-  riskText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  riskPoints: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ecf0f1',
-    marginVertical: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#7f8c8d',
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2c3e50',
-  },
-  moodContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
-  moodButton: {
-    width: '18%',
-    aspectRatio: 1,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  moodButtonSelected: {
-    borderWidth: 3,
-    borderColor: '#2c3e50',
-  },
-  moodEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  moodLabel: {
-    fontSize: 10,
-    color: 'white',
-    fontWeight: '500',
-  },
-  weekChart: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 120,
-    paddingHorizontal: 8,
-  },
-  chartColumn: {
-    alignItems: 'center',
-    width: '12%',
-  },
-  chartBar: {
-    width: '80%',
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  chartLabel: {
-    fontSize: 12,
-    color: '#7f8c8d',
-  },
-  recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  recommendationBullet: {
-    fontSize: 16,
-    color: '#2ecc71',
-    marginRight: 8,
-    marginTop: 2,
-  },
-  recommendationText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#2c3e50',
-    lineHeight: 20,
-  },
-  buttonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  navButton: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  navButtonEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  quickActions: {
-    marginBottom: 24,
-  },
-  actionButton: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  testButton: {
-    backgroundColor: '#3498db',
-  },
-  emergencyButton: {
-    backgroundColor: '#e74c3c',
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  version: {
-    fontSize: 11,
-    color: '#bdc3c7',
-  },
-});
