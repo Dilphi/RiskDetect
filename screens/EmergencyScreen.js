@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Linking,
@@ -11,9 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import styles from '../styles/EmergencyStyles'
+import styles from '../styles/EmergencyStyles';
 
-{/*Экстренная помощь*/}
 export default function EmergencyScreen({ navigation }) {
   const emergencyContacts = [
     {
@@ -26,7 +24,7 @@ export default function EmergencyScreen({ navigation }) {
     },
     {
       id: 2,
-      title: 'МЧС России',
+      title: 'МЧС Казахстана',
       number: '112',
       description: 'Экстренная помощь при чрезвычайных ситуациях',
       icon: 'warning',
@@ -73,7 +71,7 @@ export default function EmergencyScreen({ navigation }) {
 
   const handleCall = (number) => {
     Alert.alert(
-      'Звонок',
+      '📞 Звонок',
       `Позвонить по номеру ${number}?`,
       [
         { text: 'Отмена', style: 'cancel' },
@@ -87,11 +85,15 @@ export default function EmergencyScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Заголовок */}
         <View style={styles.header}>
           <Ionicons name="alert-circle" size={60} color="#e74c3c" />
-          <Text style={styles.title}>Экстренная помощь</Text>
+          <Text style={styles.title}>🚨 Экстренная помощь</Text>
           <Text style={styles.subtitle}>
             Если вам или кому-то рядом нужна помощь, не оставайтесь в одиночестве
           </Text>
@@ -105,6 +107,7 @@ export default function EmergencyScreen({ navigation }) {
               key={contact.id}
               style={styles.emergencyCard}
               onPress={() => handleCall(contact.number)}
+              activeOpacity={0.7}
             >
               <View style={[styles.emergencyIcon, { backgroundColor: contact.color + '20' }]}>
                 <Ionicons name={contact.icon} size={28} color={contact.color} />
@@ -150,12 +153,15 @@ export default function EmergencyScreen({ navigation }) {
         <TouchableOpacity 
           style={styles.chatButton}
           onPress={() => navigation.navigate('Psychologist')}
+          activeOpacity={0.8}
         >
           <Ionicons name="chatbubbles" size={24} color="white" />
           <Text style={styles.chatButtonText}>Чат с психологом</Text>
         </TouchableOpacity>
+
+        {/* Дополнительный отступ снизу */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
 }
-

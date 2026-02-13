@@ -237,7 +237,7 @@ export default function HomeScreen({ navigation, userData }) {
           
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: '#e67e2220' }]}
-            onPress={() => navigation.navigate('Дневник')}
+            onPress={() => navigation.navigate('Journal')}
           >
             <Ionicons name="happy" size={28} color="#e67e22" />
             <Text style={styles.statNumber}>{stats.moodScore}</Text>

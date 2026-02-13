@@ -2,31 +2,35 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
   TextInput,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import styles from '../styles/ProfileStyles';
+import styles from '../styles/SleepStyles';
 
 export default function SleepScreen({ userData }) {
   const [sleepData, setSleepData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showBedTimePicker, setShowBedTimePicker] = useState(false);
+  const [showWakeTimePicker, setShowWakeTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bedTime, setBedTime] = useState(new Date());
   const [wakeTime, setWakeTime] = useState(new Date());
   const [quality, setQuality] = useState(3);
   const [notes, setNotes] = useState('');
+  const [currentUser, setCurrentUser] = useState(userData);
 
   const qualityOptions = [
     { value: 1, label: 'Очень плохо', emoji: '😢', color: '#e74c3c' },
@@ -36,58 +40,133 @@ export default function SleepScreen({ userData }) {
     { value: 5, label: 'Отлично', emoji: '😊', color: '#2ecc71' },
   ];
 
+  // ✅ ИСПРАВЛЕНО: Инициализация с правильными вызовами
   useEffect(() => {
-    loadSleepData();
+    initializeApp();
   }, []);
 
-  const loadSleepData = async () => {
+  // ✅ Функция инициализации
+  const initializeApp = async () => {
     try {
-      const data = await AsyncStorage.getItem(`sleep_${userData?.id}`);
-      setSleepData(data ? JSON.parse(data) : []);
+      if (userData?.id) {
+        setCurrentUser(userData);
+        await loadSleepData(userData.id);
+      } else {
+        await loadCurrentUser();
+      }
+    } catch (error) {
+      console.error('Error initializing:', error);
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить данные');
+      setLoading(false);
+    }
+  };
+
+  // ✅ Загрузка текущего пользователя
+  const loadCurrentUser = async () => {
+    try {
+      const userJson = await AsyncStorage.getItem('currentUser');
+      if (userJson) {
+        const user = JSON.parse(userJson);
+        setCurrentUser(user);
+        await loadSleepData(user.id);
+      } else {
+        Alert.alert('❌ Ошибка', 'Пользователь не авторизован');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить пользователя');
+      setLoading(false);
+    }
+  };
+
+  // ✅ Загрузка данных сна
+  const loadSleepData = async (userId) => {
+    try {
+      const data = await AsyncStorage.getItem(`sleep_${userId}`);
+      const parsedData = data ? JSON.parse(data) : [];
+      const sortedData = parsedData.sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+      );
+      setSleepData(sortedData);
     } catch (error) {
       console.error('Error loading sleep data:', error);
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить данные сна');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Расчет часов сна
   const calculateSleepHours = () => {
     const diffMs = wakeTime - bedTime;
     const diffHrs = diffMs / (1000 * 60 * 60);
     return Math.round(diffHrs * 10) / 10;
   };
 
+  // ✅ Валидация даты
+  const validateDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    
+    if (selected > today) {
+      Alert.alert('⚠️ Ошибка', 'Дата не может быть в будущем');
+      return false;
+    }
+    return true;
+  };
+
+  // ✅ Сохранение записи
   const saveSleepRecord = async () => {
     const hours = calculateSleepHours();
     
     if (hours < 0) {
-      Alert.alert('Ошибка', 'Время пробуждения должно быть позже времени отхода ко сну');
+      Alert.alert('⚠️ Ошибка', 'Время пробуждения должно быть позже времени отхода ко сну');
       return;
     }
 
-    const newRecord = {
-      id: Date.now().toString(),
-      date: selectedDate.toISOString(),
-      bedTime: bedTime.toISOString(),
-      wakeTime: wakeTime.toISOString(),
-      hours: hours,
-      quality: quality,
-      notes: notes,
-      qualityLabel: qualityOptions.find(q => q.value === quality)?.label
-    };
+    if (!validateDate()) return;
+
+    const userId = currentUser?.id || userData?.id;
+    if (!userId) {
+      Alert.alert('❌ Ошибка', 'Пользователь не идентифицирован');
+      return;
+    }
+
+    setSaving(true);
 
     try {
-      const updatedData = [...sleepData, newRecord];
-      await AsyncStorage.setItem(`sleep_${userData?.id}`, JSON.stringify(updatedData));
+      const newRecord = {
+        id: Date.now().toString(),
+        date: selectedDate.toISOString(),
+        bedTime: bedTime.toISOString(),
+        wakeTime: wakeTime.toISOString(),
+        hours: hours,
+        quality: quality,
+        notes: notes.trim() || '',
+        qualityLabel: qualityOptions.find(q => q.value === quality)?.label,
+        qualityEmoji: qualityOptions.find(q => q.value === quality)?.emoji,
+        qualityColor: qualityOptions.find(q => q.value === quality)?.color,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedData = [newRecord, ...sleepData];
+      await AsyncStorage.setItem(`sleep_${userId}`, JSON.stringify(updatedData));
       setSleepData(updatedData);
       setShowAddModal(false);
       resetForm();
-      Alert.alert('Успешно', 'Запись сна добавлена');
+      Alert.alert('✅ Успешно', 'Запись сна добавлена');
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось сохранить запись');
+      console.error('Save error:', error);
+      Alert.alert('❌ Ошибка', 'Не удалось сохранить запись');
+    } finally {
+      setSaving(false);
     }
   };
 
+  // ✅ Сброс формы
   const resetForm = () => {
     setSelectedDate(new Date());
     setBedTime(new Date());
@@ -96,22 +175,28 @@ export default function SleepScreen({ userData }) {
     setNotes('');
   };
 
+  // ✅ Удаление записи
   const deleteSleepRecord = (id) => {
     Alert.alert(
-      'Удаление записи',
+      '🗑️ Удаление записи',
       'Вы уверены, что хотите удалить эту запись?',
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: '❌ Отмена', style: 'cancel' },
         {
-          text: 'Удалить',
+          text: '✅ Удалить',
           style: 'destructive',
           onPress: async () => {
             try {
+              const userId = currentUser?.id || userData?.id;
+              if (!userId) throw new Error('No user ID');
+              
               const updatedData = sleepData.filter(record => record.id !== id);
-              await AsyncStorage.setItem(`sleep_${userData?.id}`, JSON.stringify(updatedData));
+              await AsyncStorage.setItem(`sleep_${userId}`, JSON.stringify(updatedData));
               setSleepData(updatedData);
+              Alert.alert('✅ Успешно', 'Запись удалена');
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось удалить запись');
+              console.error('Delete error:', error);
+              Alert.alert('❌ Ошибка', 'Не удалось удалить запись');
             }
           }
         }
@@ -119,6 +204,7 @@ export default function SleepScreen({ userData }) {
     );
   };
 
+  // ✅ Статистика
   const getAverageSleep = () => {
     if (sleepData.length === 0) return 0;
     const total = sleepData.reduce((sum, record) => sum + record.hours, 0);
@@ -131,11 +217,23 @@ export default function SleepScreen({ userData }) {
     return Math.round((total / sleepData.length) * 10) / 10;
   };
 
-  const getLast7Days = () => {
-    const last7 = sleepData
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 7);
-    return last7;
+  // ✅ Форматирование даты
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Сегодня';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Вчера';
+    } else {
+      return date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'short'
+      });
+    }
   };
 
   if (loading) {
@@ -150,8 +248,14 @@ export default function SleepScreen({ userData }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
+        {/* Заголовок */}
         <View style={styles.header}>
-          <Text style={styles.title}>Мониторинг сна</Text>
+          <View>
+            <Text style={styles.title}>😴 Мониторинг сна</Text>
+            <Text style={styles.subtitle}>
+              Отслеживайте качество вашего сна
+            </Text>
+          </View>
           <TouchableOpacity 
             style={styles.addButton}
             onPress={() => setShowAddModal(true)}
@@ -162,7 +266,7 @@ export default function SleepScreen({ userData }) {
 
         {/* Статистика */}
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Статистика сна</Text>
+          <Text style={styles.statsTitle}>📊 Статистика сна</Text>
           
           <View style={styles.statsGrid}>
             <View style={styles.statBlock}>
@@ -171,7 +275,7 @@ export default function SleepScreen({ userData }) {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{getAverageQuality()}</Text>
+              <Text style={styles.statValue}>{getAverageQuality().toFixed(1)}</Text>
               <Text style={styles.statLabel}>Качество</Text>
             </View>
             <View style={styles.statDivider} />
@@ -183,79 +287,80 @@ export default function SleepScreen({ userData }) {
         </View>
 
         {/* Рекомендация */}
-        <View style={styles.recommendationCard}>
-          <Ionicons name="bulb" size={24} color="#f39c12" />
-          <View style={styles.recommendationText}>
-            <Text style={styles.recommendationTitle}>
-              {getAverageSleep() < 7 
-                ? 'Вам нужно больше спать' 
-                : getAverageSleep() > 9 
-                ? 'Возможно, вы слишком много спите' 
-                : 'Отличный режим сна!'}
-            </Text>
-            <Text style={styles.recommendationDescription}>
-              {getAverageSleep() < 7 
-                ? 'Рекомендуется спать 7-9 часов для хорошего самочувствия' 
-                : getAverageSleep() > 9 
-                ? 'Попробуйте ложиться спать позже или просыпаться раньше' 
-                : 'Продолжайте поддерживать здоровый режим сна'}
-            </Text>
+        {sleepData.length > 0 && (
+          <View style={styles.recommendationCard}>
+            <Ionicons name="bulb" size={24} color="#f39c12" />
+            <View style={styles.recommendationText}>
+              <Text style={styles.recommendationTitle}>
+                {getAverageSleep() < 7 
+                  ? '😴 Вам нужно больше спать' 
+                  : getAverageSleep() > 9 
+                  ? '⏰ Возможно, вы слишком много спите' 
+                  : '✨ Отличный режим сна!'}
+              </Text>
+              <Text style={styles.recommendationDescription}>
+                {getAverageSleep() < 7 
+                  ? 'Рекомендуется спать 7-9 часов для хорошего самочувствия' 
+                  : getAverageSleep() > 9 
+                  ? 'Попробуйте ложиться спать позже или просыпаться раньше' 
+                  : 'Продолжайте поддерживать здоровый режим сна'}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Последние записи */}
         <View style={styles.historyCard}>
-          <Text style={styles.historyTitle}>Последние записи</Text>
+          <Text style={styles.historyTitle}>📝 Последние записи</Text>
           
-          {getLast7Days().map((record) => {
-            const qualityOption = qualityOptions.find(q => q.value === record.quality);
-            const date = new Date(record.date).toLocaleDateString('ru-RU', {
-              day: 'numeric',
-              month: 'short'
-            });
-            
-            return (
-              <View key={record.id} style={styles.historyItem}>
-                <View style={styles.historyItemHeader}>
-                  <View style={styles.historyDate}>
-                    <Text style={styles.historyDay}>{date}</Text>
-                  </View>
-                  <View style={styles.historyStats}>
-                    <View style={styles.historyHours}>
-                      <Ionicons name="moon" size={16} color="#2ecc71" />
-                      <Text style={styles.historyHoursText}>{record.hours} ч</Text>
-                    </View>
-                    <View style={[styles.qualityBadge, { backgroundColor: qualityOption.color + '20' }]}>
-                      <Text style={[styles.qualityBadgeText, { color: qualityOption.color }]}>
-                        {qualityOption.emoji} {qualityOption.label}
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity onPress={() => deleteSleepRecord(record.id)}>
-                    <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-                  </TouchableOpacity>
-                </View>
-                {record.notes ? (
-                  <Text style={styles.historyNotes}>{record.notes}</Text>
-                ) : null}
-              </View>
-            );
-          })}
-
-          {sleepData.length === 0 && (
+          {sleepData.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="moon" size={48} color="#bdc3c7" />
+              <Ionicons name="moon" size={64} color="#bdc3c7" />
               <Text style={styles.emptyStateText}>Нет записей о сне</Text>
               <Text style={styles.emptyStateSubtext}>
                 Добавьте первую запись, нажав на кнопку +
               </Text>
             </View>
+          ) : (
+            sleepData.slice(0, 7).map((record) => {
+              const qualityOption = qualityOptions.find(q => q.value === record.quality);
+              return (
+                <View key={record.id} style={styles.historyItem}>
+                  <View style={styles.historyItemHeader}>
+                    <View style={styles.historyDate}>
+                      <Text style={styles.historyDay}>{formatDate(record.date)}</Text>
+                    </View>
+                    
+                    <View style={styles.historyStats}>
+                      <View style={styles.historyHours}>
+                        <Ionicons name="moon" size={16} color="#2ecc71" />
+                        <Text style={styles.historyHoursText}>{record.hours} ч</Text>
+                      </View>
+                      
+                      <View style={[styles.qualityBadge, { backgroundColor: qualityOption.color + '20' }]}>
+                        <Text style={[styles.qualityBadgeText, { color: qualityOption.color }]}>
+                          {qualityOption.emoji} {qualityOption.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity onPress={() => deleteSleepRecord(record.id)}>
+                      <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {record.notes ? (
+                    <Text style={styles.historyNotes}>{record.notes}</Text>
+                  ) : null}
+                </View>
+              );
+            })
           )}
         </View>
 
         {/* Советы для хорошего сна */}
         <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>Советы для хорошего сна</Text>
+          <Text style={styles.tipsTitle}>💡 Советы для хорошего сна</Text>
           
           <View style={styles.tipItem}>
             <Ionicons name="checkmark-circle" size={20} color="#2ecc71" />
@@ -285,7 +390,7 @@ export default function SleepScreen({ userData }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Добавить запись сна</Text>
+              <Text style={styles.modalTitle}>➕ Добавить запись сна</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Ionicons name="close" size={24} color="#7f8c8d" />
               </TouchableOpacity>
@@ -293,7 +398,7 @@ export default function SleepScreen({ userData }) {
 
             <ScrollView style={styles.modalForm}>
               {/* Дата */}
-              <Text style={styles.modalLabel}>Дата</Text>
+              <Text style={styles.modalLabel}>📅 Дата</Text>
               <TouchableOpacity 
                 style={styles.dateButton}
                 onPress={() => setShowDatePicker(true)}
@@ -312,7 +417,7 @@ export default function SleepScreen({ userData }) {
                 <DateTimePicker
                   value={selectedDate}
                   mode="date"
-                  display="default"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(event, date) => {
                     setShowDatePicker(false);
                     if (date) setSelectedDate(date);
@@ -320,33 +425,66 @@ export default function SleepScreen({ userData }) {
                 />
               )}
 
-              {/* Время сна */}
-              <Text style={styles.modalLabel}>Время отхода ко сну</Text>
-              <DateTimePicker
-                value={bedTime}
-                mode="time"
-                display="spinner"
-                onChange={(event, time) => {
-                  if (time) setBedTime(time);
-                }}
-              />
+              {/* Время отхода ко сну */}
+              <Text style={styles.modalLabel}>⏰ Время отхода ко сну</Text>
+              <TouchableOpacity 
+                style={styles.timeButton}
+                onPress={() => setShowBedTimePicker(true)}
+              >
+                <Ionicons name="time-outline" size={20} color="#3498db" />
+                <Text style={styles.timeButtonText}>
+                  {bedTime.toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </Text>
+              </TouchableOpacity>
 
-              <Text style={styles.modalLabel}>Время пробуждения</Text>
-              <DateTimePicker
-                value={wakeTime}
-                mode="time"
-                display="spinner"
-                onChange={(event, time) => {
-                  if (time) setWakeTime(time);
-                }}
-              />
+              {showBedTimePicker && (
+                <DateTimePicker
+                  value={bedTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedTime) => {
+                    setShowBedTimePicker(false);
+                    if (selectedTime) setBedTime(selectedTime);
+                  }}
+                />
+              )}
+
+              {/* Время пробуждения */}
+              <Text style={styles.modalLabel}>⏰ Время пробуждения</Text>
+              <TouchableOpacity 
+                style={styles.timeButton}
+                onPress={() => setShowWakeTimePicker(true)}
+              >
+                <Ionicons name="time-outline" size={20} color="#3498db" />
+                <Text style={styles.timeButtonText}>
+                  {wakeTime.toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              {showWakeTimePicker && (
+                <DateTimePicker
+                  value={wakeTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedTime) => {
+                    setShowWakeTimePicker(false);
+                    if (selectedTime) setWakeTime(selectedTime);
+                  }}
+                />
+              )}
 
               <Text style={styles.hoursPreview}>
                 Продолжительность: {calculateSleepHours()} часов
               </Text>
 
               {/* Качество сна */}
-              <Text style={styles.modalLabel}>Качество сна</Text>
+              <Text style={styles.modalLabel}>⭐ Качество сна</Text>
               <View style={styles.qualityGrid}>
                 {qualityOptions.map((option) => (
                   <TouchableOpacity
@@ -365,7 +503,7 @@ export default function SleepScreen({ userData }) {
               </View>
 
               {/* Заметки */}
-              <Text style={styles.modalLabel}>Заметки (необязательно)</Text>
+              <Text style={styles.modalLabel}>📝 Заметки</Text>
               <TextInput
                 style={styles.notesInput}
                 placeholder="Что вам снилось? Как вы себя чувствуете?"
@@ -387,10 +525,15 @@ export default function SleepScreen({ userData }) {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonSave]}
+                style={[styles.modalButton, styles.modalButtonSave, saving && styles.buttonDisabled]}
                 onPress={saveSleepRecord}
+                disabled={saving}
               >
-                <Text style={styles.modalButtonSaveText}>Сохранить</Text>
+                {saving ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonSaveText}>Сохранить</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -399,4 +542,3 @@ export default function SleepScreen({ userData }) {
     </SafeAreaView>
   );
 }
-

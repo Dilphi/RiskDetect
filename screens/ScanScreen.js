@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Text, 
   View, 
-  StyleSheet, 
+  TextInput,  // ✅ ДОБАВЛЕНО!
   TouchableOpacity, 
   Alert,
   Modal,
@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
 import { Audio } from 'expo-av';
 
-import styles from '../styles/ScanStyles'
+import styles from '../styles/ScanStyles';
 
 // Имитация Bluetooth модуля (в реальном проекте будет использоваться react-native-ble-plx)
 const mockBleManager = {
@@ -212,6 +212,10 @@ export default function ScanScreen({ navigation, userData }) {
   const [pairedDevices, setPairedDevices] = useState([]);
   const [sound, setSound] = useState(null);
   
+  // ✅ Состояния для ручного ввода - ОБЪЯВЛЕНЫ ОДИН РАЗ!
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualSerial, setManualSerial] = useState('');
+  
   const scanLineAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -260,7 +264,7 @@ export default function ScanScreen({ navigation, userData }) {
   const playScanSound = async () => {
     try {
       const { sound } = await Audio.Sound.createAsync(
-        require('../assets/scan.mp3') // Добавьте звуковой файл
+        require('../assets/scan.mp3') // Добавить звуковой файл
       );
       setSound(sound);
       await sound.playAsync();
@@ -433,27 +437,23 @@ export default function ScanScreen({ navigation, userData }) {
 
   // Ручной ввод данных устройства
   const handleManualEntry = () => {
-    Alert.prompt(
-      'Введите серийный номер',
-      'Серийный номер находится на задней панели устройства',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Подключить',
-          onPress: (serial) => {
-            if (serial && serial.length > 0) {
-              const mockDevice = {
-                id: `RD-MANUAL-${serial}`,
-                name: 'RiskDetect Device',
-                model: 'Manual Entry',
-                serialNumber: serial
-              };
-              connectToDevice(mockDevice);
-            }
-          }
-        }
-      ]
-    );
+    setShowManualModal(true);
+  };
+
+  const confirmManualEntry = () => {
+    if (manualSerial && manualSerial.length > 0) {
+      const mockDevice = {
+        id: `RD-MANUAL-${manualSerial}`,
+        name: 'RiskDetect Device',
+        model: 'Manual Entry',
+        serialNumber: manualSerial
+      };
+      connectToDevice(mockDevice);
+      setShowManualModal(false);
+      setManualSerial('');
+    } else {
+      Alert.alert('Ошибка', 'Введите серийный номер');
+    }
   };
 
   if (!permission) {
@@ -667,6 +667,56 @@ export default function ScanScreen({ navigation, userData }) {
         </View>
       )}
 
+      {/* Модальное окно ручного ввода */}
+      <Modal
+        visible={showManualModal}
+        transparent
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ручное подключение</Text>
+              <TouchableOpacity onPress={() => setShowManualModal(false)}>
+                <Ionicons name="close" size={24} color="#7f8c8d" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Серийный номер</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Введите серийный номер"
+                placeholderTextColor="#95a5a6"
+                value={manualSerial}
+                onChangeText={setManualSerial}
+                autoCapitalize="characters"
+                maxLength={20}
+              />
+              <Text style={styles.modalHint}>
+                Серийный номер находится на задней панели устройства
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowManualModal(false)}
+              >
+                <Text style={styles.modalButtonCancelText}>Отмена</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={confirmManualEntry}
+              >
+                <Text style={styles.modalButtonConfirmText}>Подключить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Модальное окно результата сканирования */}
       <Modal
         visible={showResultModal}
@@ -788,7 +838,10 @@ export default function ScanScreen({ navigation, userData }) {
           <Text style={styles.pairedDevicesTitle}>
             Сопряженные устройства: {pairedDevices.length}
           </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile', { tab: 'devices' })}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs',{
+            screen: 'Профиль'
+        
+          })}>
             <Text style={styles.pairedDevicesLink}>Управление</Text>
           </TouchableOpacity>
         </View>

@@ -71,7 +71,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>🧠 RiskDetect</Text>
+            <Text style={styles.logo}>RiskDetect</Text>
             <Text style={styles.subtitle}>
               Система мониторинга психологического состояния
             </Text>
