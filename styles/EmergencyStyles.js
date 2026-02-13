@@ -145,6 +145,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  scrollContent: {
+  flexGrow: 1,
+  paddingBottom: 20,
+  },
 });
 
 export default styles
