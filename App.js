@@ -6,6 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, View, Text } from 'react-native';
 
+import { ThemeProvider, useTheme } from './components/ThemeContext';
+import { NotificationProvider } from './components/NotificationContext';
+import { ScreenWrapper } from './components/ScreenWrapper';
+
 // Экраны
 import HomeScreen from './screens/HomeScreen';
 import SleepScreen from './screens/SleepScreen';
@@ -26,6 +30,8 @@ const Stack = createNativeStackNavigator();
 
 // Главные табы для авторизованных пользователей
 function MainTabs({ userData, onLogout }) {
+  const { theme } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -37,10 +43,10 @@ function MainTabs({ userData, onLogout }) {
           else if (route.name === 'Профиль') iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2ecc71',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.lightGray,
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: theme.colors.tabBar,
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
@@ -48,9 +54,9 @@ function MainTabs({ userData, onLogout }) {
           paddingBottom: 8,
         },
         headerStyle: {
-          backgroundColor: '#2ecc71',
+          backgroundColor: theme.colors.header,
         },
-        headerTintColor: 'white',
+        headerTintColor: theme.colors.white,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -74,14 +80,29 @@ function MainTabs({ userData, onLogout }) {
 
 // Стек навигации для авторизованных пользователей
 function MainStack({ userData, onLogout }) {
+  const { theme } = useTheme();
+  
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.colors.header,
+        },
+        headerTintColor: theme.colors.white,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerBackTitleVisible: false,
+        contentStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
       <Stack.Screen 
         name="MainTabs" 
         options={{ headerShown: false }}
       >
         {(props) => <MainTabs {...props} userData={userData} onLogout={onLogout} />}
       </Stack.Screen>
+      
       <Stack.Screen 
         name="TestResult" 
         component={TestResultScreen}
@@ -123,8 +144,15 @@ function MainStack({ userData, onLogout }) {
 
 // Навигация для неавторизованных пользователей
 function AuthStack({ setIsAuthenticated, setUserData }) {
+  const { theme } = useTheme();
+  
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.colors.background }
+      }}
+    >
       <Stack.Screen name="Auth">
         {(props) => (
           <AuthScreen 
@@ -147,13 +175,13 @@ function AuthStack({ setIsAuthenticated, setUserData }) {
   );
 }
 
-// Главный компонент приложения
-export default function App() {
+// Внутренний компонент с доступом к теме
+function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
 
-  // Проверка сохраненной сессии при запуске
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -187,10 +215,22 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#7f8c8d' }}>Загрузка приложения...</Text>
-      </View>
+      <ScreenWrapper>
+        <View style={{ 
+          flex: 1, 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={{ 
+            marginTop: 16, 
+            fontSize: 16, 
+            color: theme.colors.textSecondary 
+          }}>
+            Загрузка приложения...
+          </Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
@@ -205,5 +245,16 @@ export default function App() {
         />
       )}
     </NavigationContainer>
+  );
+}
+
+// Главный компонент приложения с провайдерами
+export default function App() {
+  return (
+    <ThemeProvider>
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
+    </ThemeProvider>
   );
 }
