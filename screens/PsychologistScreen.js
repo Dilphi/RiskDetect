@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -11,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import styles from '../styles/PsychologistStyles'
+import styles from '../styles/PsychologistStyles';
 
 export default function PsychologistScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('chat');
@@ -65,7 +64,7 @@ export default function PsychologistScreen({ navigation }) {
     },
     {
       id: 2,
-      title: 'МЧС России',
+      title: 'МЧС Казахстана',
       number: '112',
       description: 'Экстренная помощь',
       icon: 'warning'
@@ -81,12 +80,12 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleCall = (number) => {
     Alert.alert(
-      'Звонок',
+      '📞 Звонок',
       `Позвонить по номеру ${number}?`,
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: '❌ Отмена', style: 'cancel' },
         { 
-          text: 'Позвонить', 
+          text: '✅ Позвонить', 
           onPress: () => Linking.openURL(`tel:${number}`) 
         }
       ]
@@ -95,12 +94,12 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleChat = (psychologist) => {
     Alert.alert(
-      'Чат с психологом',
+      '💬 Чат с психологом',
       `Начать чат с ${psychologist.name}?`,
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: '❌ Отмена', style: 'cancel' },
         { 
-          text: 'Начать чат', 
+          text: '✅ Начать чат', 
           onPress: () => Alert.alert('Чат', 'Функция чата будет доступна в следующем обновлении')
         }
       ]
@@ -109,12 +108,12 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleBookSession = (psychologist) => {
     Alert.alert(
-      'Запись на консультацию',
+      '📅 Запись на консультацию',
       `Записаться к ${psychologist.name}?`,
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: '❌ Отмена', style: 'cancel' },
         { 
-          text: 'Записаться', 
+          text: '✅ Записаться', 
           onPress: () => Alert.alert('Запись', 'Функция записи будет доступна в следующем обновлении')
         }
       ]
@@ -123,67 +122,78 @@ export default function PsychologistScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Заголовок */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Психологическая помощь</Text>
-          <Text style={styles.subtitle}>
-            Профессиональная поддержка 24/7
-          </Text>
-        </View>
+      {/* ✅ ТОЛЬКО ОДИН ScrollView! */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.container}>
+          {/* Заголовок */}
+          <View style={styles.header}>
+            <Text style={styles.title}>🧠 Психологическая помощь</Text>
+            <Text style={styles.subtitle}>
+              Профессиональная поддержка 24/7
+            </Text>
+          </View>
 
-        {/* Экстренная помощь */}
-        <View style={styles.emergencySection}>
-          <Text style={styles.sectionTitle}>🚨 Экстренная помощь</Text>
-          {emergencyContacts.map((contact) => (
+          {/* Экстренная помощь */}
+          <View style={styles.emergencySection}>
+            <Text style={styles.sectionTitle}>🚨 Экстренная помощь</Text>
+            {emergencyContacts.map((contact) => (
+              <TouchableOpacity
+                key={contact.id}
+                style={styles.emergencyCard}
+                onPress={() => handleCall(contact.number)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.emergencyIcon, { backgroundColor: '#e74c3c20' }]}>
+                  <Ionicons name={contact.icon} size={24} color="#e74c3c" />
+                </View>
+                <View style={styles.emergencyInfo}>
+                  <Text style={styles.emergencyTitle}>{contact.title}</Text>
+                  <Text style={styles.emergencyNumber}>{contact.number}</Text>
+                  <Text style={styles.emergencyDescription}>{contact.description}</Text>
+                </View>
+                <Ionicons name="call" size={24} color="#e74c3c" />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Вкладки */}
+          <View style={styles.tabs}>
             <TouchableOpacity
-              key={contact.id}
-              style={styles.emergencyCard}
-              onPress={() => handleCall(contact.number)}
+              style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
+              onPress={() => setActiveTab('chat')}
+              activeOpacity={0.7}
             >
-              <View style={styles.emergencyIcon}>
-                <Ionicons name={contact.icon} size={24} color="#e74c3c" />
-              </View>
-              <View style={styles.emergencyInfo}>
-                <Text style={styles.emergencyTitle}>{contact.title}</Text>
-                <Text style={styles.emergencyNumber}>{contact.number}</Text>
-                <Text style={styles.emergencyDescription}>{contact.description}</Text>
-              </View>
-              <Ionicons name="call" size={24} color="#e74c3c" />
+              <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
+                💬 Чат с психологом
+              </Text>
             </TouchableOpacity>
-          ))}
-        </View>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'psychologists' && styles.tabActive]}
+              onPress={() => setActiveTab('psychologists')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, activeTab === 'psychologists' && styles.tabTextActive]}>
+                👥 Специалисты
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Вкладки */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
-          >
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
-              Чат с психологом
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'psychologists' && styles.tabActive]}
-            onPress={() => setActiveTab('psychologists')}
-          >
-            <Text style={[styles.tabText, activeTab === 'psychologists' && styles.tabTextActive]}>
-              Специалисты
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Контент вкладок */}
           {activeTab === 'chat' ? (
             <View style={styles.chatSection}>
               <View style={styles.chatPlaceholder}>
                 <Ionicons name="chatbubbles-outline" size={64} color="#bdc3c7" />
-                <Text style={styles.chatPlaceholderTitle}>Чат с психологом</Text>
+                <Text style={styles.chatPlaceholderTitle}>💬 Чат с психологом</Text>
                 <Text style={styles.chatPlaceholderText}>
                   Задайте вопрос нашему психологу. Мы ответим вам в ближайшее время.
                 </Text>
-                <TouchableOpacity style={styles.startChatButton}>
+                <TouchableOpacity 
+                  style={styles.startChatButton}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.startChatButtonText}>Начать чат</Text>
                 </TouchableOpacity>
               </View>
@@ -191,7 +201,7 @@ export default function PsychologistScreen({ navigation }) {
               <View style={styles.infoCard}>
                 <Ionicons name="information-circle" size={24} color="#3498db" />
                 <Text style={styles.infoCardText}>
-                  Чат анонимный. Все сообщения защищены и не передаются третьим лицам.
+                  🔒 Чат анонимный. Все сообщения защищены и не передаются третьим лицам.
                 </Text>
               </View>
             </View>
@@ -227,7 +237,7 @@ export default function PsychologistScreen({ navigation }) {
                       psychologist.available ? styles.statusAvailable : styles.statusUnavailable
                     ]}>
                       <Text style={styles.statusText}>
-                        {psychologist.available ? 'Доступен' : 'Занят'}
+                        {psychologist.available ? '✅ Доступен' : '⏰ Занят'}
                       </Text>
                     </View>
                   </View>
@@ -240,17 +250,19 @@ export default function PsychologistScreen({ navigation }) {
                     <TouchableOpacity 
                       style={[styles.actionButton, styles.chatButton]}
                       onPress={() => handleChat(psychologist)}
+                      activeOpacity={0.7}
                     >
                       <Ionicons name="chatbubble-outline" size={20} color="#3498db" />
-                      <Text style={styles.chatButtonText}>Чат</Text>
+                      <Text style={styles.chatButtonText}>💬 Чат</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
                       style={[styles.actionButton, styles.bookButton]}
                       onPress={() => handleBookSession(psychologist)}
+                      activeOpacity={0.7}
                     >
                       <Ionicons name="calendar-outline" size={20} color="#2ecc71" />
-                      <Text style={styles.bookButtonText}>Записаться</Text>
+                      <Text style={styles.bookButtonText}>📅 Записаться</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -259,7 +271,7 @@ export default function PsychologistScreen({ navigation }) {
               <View style={styles.consultationInfo}>
                 <Ionicons name="heart" size={24} color="#e74c3c" />
                 <Text style={styles.consultationInfoTitle}>
-                  Консультации бесплатны
+                  ❤️ Консультации бесплатны
                 </Text>
                 <Text style={styles.consultationInfoText}>
                   Все консультации с психологами в нашем приложении проводятся бесплатно.
@@ -271,28 +283,27 @@ export default function PsychologistScreen({ navigation }) {
 
           {/* Советы по психологической поддержке */}
           <View style={styles.tipsCard}>
-            <Text style={styles.tipsTitle}>Как справиться со стрессом</Text>
+            <Text style={styles.tipsTitle}>🧘 Как справиться со стрессом</Text>
             
             <View style={styles.tipItem}>
               <Ionicons name="leaf" size={20} color="#2ecc71" />
-              <Text style={styles.tipText}>Дышите глубоко: 4 секунды вдох, 4 - задержка, 4 - выдох</Text>
+              <Text style={styles.tipText}>🌿 Дышите глубоко: 4 сек вдох, 4 задержка, 4 выдох</Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="walk" size={20} color="#2ecc71" />
-              <Text style={styles.tipText}>Сделайте короткую прогулку на свежем воздухе</Text>
+              <Text style={styles.tipText}>🚶 Сделайте короткую прогулку на свежем воздухе</Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="water" size={20} color="#2ecc71" />
-              <Text style={styles.tipText}>Выпейте стакан воды - это поможет успокоиться</Text>
+              <Text style={styles.tipText}>💧 Выпейте стакан воды - это поможет успокоиться</Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="people" size={20} color="#2ecc71" />
-              <Text style={styles.tipText}>Поговорите с близким человеком о своих чувствах</Text>
+              <Text style={styles.tipText}>🗣️ Поговорите с близким человеком о своих чувствах</Text>
             </View>
           </View>
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
-
