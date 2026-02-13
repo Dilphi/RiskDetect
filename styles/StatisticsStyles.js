@@ -201,6 +201,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#2c3e50',
   },
+  emptyText: {
+    fontSize: 14,
+    color: '#95a5a6',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  refreshControl: {
+    tintColor: '#2ecc71',
+  },
 });
 
 export default styles
