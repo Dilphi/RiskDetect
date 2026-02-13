@@ -329,6 +329,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  subtitle: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 4,
+  },
+  timeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dfe6e9',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    marginBottom: 16,
+  },
+  timeButtonText: {
+    fontSize: 16,
+    color: '#2c3e50',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+    backgroundColor: '#95a5a6',
+  },
 });
+
 
 export default styles
