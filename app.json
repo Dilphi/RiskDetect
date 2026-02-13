@@ -20,14 +20,24 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.oonoki.RiskDetect"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-barcode-scanner",
-      "expo-font"
-    ]
+      "expo-font",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "203878f0-29a9-408d-b288-6e8d5fb2371f"
+      }
+    }
   }
 }
