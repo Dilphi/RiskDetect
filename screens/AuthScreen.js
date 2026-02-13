@@ -3,7 +3,6 @@ import {
   View, 
   TextInput, 
   Text, 
-  StyleSheet, 
   Alert,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -12,10 +11,11 @@ import {
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import styles from '../styles/AuthStyles'
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
+import styles from '../styles/AuthStyles';
 
 export default function AuthScreen({ navigation, setIsAuthenticated, setUserData }) {
   const [email, setEmail] = useState('');
@@ -23,6 +23,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { theme } = useTheme();
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
@@ -34,7 +35,6 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
 
     try {
       if (isLogin) {
-        // Вход в систему
         const usersJson = await AsyncStorage.getItem('users');
         const users = usersJson ? JSON.parse(usersJson) : [];
         
@@ -61,29 +61,40 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScreenWrapper>
       <KeyboardAvoidingView 
-        style={styles.container}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { backgroundColor: theme.colors.background }
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>RiskDetect</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.logo, { color: theme.colors.primary }]}>
+              RiskDetect
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Система мониторинга психологического состояния
             </Text>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+            <View style={[
+              styles.inputContainer, 
+              { 
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border 
+              }
+            ]}>
+              <Ionicons name="mail-outline" size={20} color={theme.colors.gray} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.colors.text }]}
                 placeholder="Email"
-                placeholderTextColor="#95a5a6"
+                placeholderTextColor={theme.colors.lightGray}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -91,12 +102,18 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
               />
             </View>
             
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+            <View style={[
+              styles.inputContainer, 
+              { 
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border 
+              }
+            ]}>
+              <Ionicons name="lock-closed-outline" size={20} color={theme.colors.gray} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.colors.text }]}
                 placeholder="Пароль"
-                placeholderTextColor="#95a5a6"
+                placeholderTextColor={theme.colors.lightGray}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -105,20 +122,26 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
                 <Ionicons 
                   name={showPassword ? "eye-off-outline" : "eye-outline"} 
                   size={20} 
-                  color="#95a5a6" 
+                  color={theme.colors.gray} 
                 />
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity 
-              style={[styles.authButton, loading && styles.authButtonDisabled]}
+              style={[
+                styles.authButton, 
+                { backgroundColor: theme.colors.primary },
+                loading && styles.authButtonDisabled
+              ]}
               onPress={handleAuth}
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={theme.colors.white} />
               ) : (
-                <Text style={styles.authButtonText}>Войти</Text>
+                <Text style={[styles.authButtonText, { color: theme.colors.white }]}>
+                  Войти
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -127,14 +150,19 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
             style={styles.switchAuth}
             onPress={() => navigation.navigate('Register')}
           >
-            <Text style={styles.switchAuthText}>
+            <Text style={[styles.switchAuthText, { color: theme.colors.secondary }]}>
               Нет аккаунта? Зарегистрироваться
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>О приложении</Text>
-            <Text style={styles.infoText}>
+          <View style={[
+            styles.infoSection, 
+            { borderTopColor: theme.colors.border }
+          ]}>
+            <Text style={[styles.infoTitle, { color: theme.colors.text }]}>
+              О приложении
+            </Text>
+            <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
               RiskDetect помогает отслеживать психологическое состояние, 
               вести дневник настроения, проходить тесты и получать 
               рекомендации от психологов.
@@ -142,6 +170,6 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
