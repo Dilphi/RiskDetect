@@ -76,7 +76,7 @@ export default function SleepScreen({ userData }) {
       }
     } catch (error) {
       console.error('Error initializing:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить данные');
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить данные');
       setLoading(false);
     }
   };
@@ -89,12 +89,12 @@ export default function SleepScreen({ userData }) {
         setCurrentUser(user);
         await loadSleepData(user.id);
       } else {
-        Alert.alert('Ошибка', 'Пользователь не авторизован');
+        Alert.alert('❌ Ошибка', 'Пользователь не авторизован');
         setLoading(false);
       }
     } catch (error) {
       console.error('Error loading user:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить пользователя');
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить пользователя');
       setLoading(false);
     }
   };
@@ -109,13 +109,13 @@ export default function SleepScreen({ userData }) {
       setSleepData(sortedData);
     } catch (error) {
       console.error('Error loading sleep data:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить данные сна');
+      Alert.alert('❌ Ошибка', 'Не удалось загрузить данные сна');
     } finally {
       setLoading(false);
     }
   };
 
-  // Расчет часов сна 
+  // Расчет часов сна (с учётом перехода через полночь)
   const calculateSleepHours = () => {
     let diffMs = wakeTime - bedTime;
     
@@ -130,15 +130,31 @@ export default function SleepScreen({ userData }) {
     return Math.round(diffHrs * 10) / 10;
   };
 
+  // Валидация даты (нельзя выбрать будущую дату)
+  const validateDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    
+    if (selected > today) {
+      Alert.alert('⚠️ Ошибка', 'Дата не может быть в будущем');
+      return false;
+    }
+    return true;
+  };
+
   // Сохранение записи
   const saveSleepRecord = async () => {
-    const hours = calculateSleepHours();
-    
+    // ✅ 1. Проверяем дату
     if (!validateDate()) return;
 
+    const hours = calculateSleepHours();
+    
+    // ✅ 2. Проверяем пользователя
     const userId = currentUser?.id || userData?.id;
     if (!userId) {
-      Alert.alert('Ошибка', 'Пользователь не идентифицирован');
+      Alert.alert('❌ Ошибка', 'Пользователь не идентифицирован');
       return;
     }
 
@@ -164,10 +180,10 @@ export default function SleepScreen({ userData }) {
       setSleepData(updatedData);
       setShowAddModal(false);
       resetForm();
-      Alert.alert('Успешно', `Запись сна добавлена (${hours} часов)`);
+      Alert.alert('✅ Успешно', `Запись сна добавлена (${hours} часов)`);
     } catch (error) {
       console.error('Save error:', error);
-      Alert.alert('Ошибка', 'Не удалось сохранить запись');
+      Alert.alert('❌ Ошибка', 'Не удалось сохранить запись');
     } finally {
       setSaving(false);
     }
@@ -183,12 +199,12 @@ export default function SleepScreen({ userData }) {
 
   const deleteSleepRecord = (id) => {
     Alert.alert(
-      'Удаление записи',
+      '🗑️ Удаление записи',
       'Вы уверены, что хотите удалить эту запись?',
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: '❌ Отмена', style: 'cancel' },
         {
-          text: 'Удалить',
+          text: '✅ Удалить',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -198,10 +214,10 @@ export default function SleepScreen({ userData }) {
               const updatedData = sleepData.filter(record => record.id !== id);
               await AsyncStorage.setItem(`sleep_${userId}`, JSON.stringify(updatedData));
               setSleepData(updatedData);
-              Alert.alert('Успешно', 'Запись удалена');
+              Alert.alert('✅ Успешно', 'Запись удалена');
             } catch (error) {
               console.error('Delete error:', error);
-              Alert.alert('Ошибка', 'Не удалось удалить запись');
+              Alert.alert('❌ Ошибка', 'Не удалось удалить запись');
             }
           }
         }
@@ -508,7 +524,7 @@ export default function SleepScreen({ userData }) {
               </Text>
 
               {/* Качество сна */}
-              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Качество сна</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>⭐ Качество сна</Text>
               <View style={styles.qualityGrid}>
                 {qualityOptions.map((option) => (
                   <TouchableOpacity
