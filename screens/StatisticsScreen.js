@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert
+  Alert,
+  Platform 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 
+import { useTheme } from '../components/ThemeContext'; 
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/StatisticsStyles';
 
 export default function StatisticsScreen({ navigation, userData }) {
@@ -24,6 +27,25 @@ export default function StatisticsScreen({ navigation, userData }) {
     mood: [],
     journal: []
   });
+  const { theme } = useTheme();
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+    }
+  }, [theme.dark]);
 
   // Инициализация
   useEffect(() => {
@@ -42,7 +64,7 @@ export default function StatisticsScreen({ navigation, userData }) {
           setCurrentUser(user);
           await loadAllData(user.id);
         } else {
-          Alert.alert('❌ Ошибка', 'Пользователь не авторизован');
+          Alert.alert('Ошибка', 'Пользователь не авторизован');
           setLoading(false);
         }
       }
@@ -55,23 +77,19 @@ export default function StatisticsScreen({ navigation, userData }) {
   // Загрузка всех данных
   const loadAllData = async (userId) => {
     try {
-      // Загружаем тесты
       const testsJson = await AsyncStorage.getItem(`tests_${userId}`);
       const testsData = testsJson ? JSON.parse(testsJson) : [];
       
-      // Загружаем сон
       const sleepJson = await AsyncStorage.getItem(`sleep_${userId}`);
       const sleepData = sleepJson ? JSON.parse(sleepJson) : [];
       
-      // Загружаем настроение
       const moodJson = await AsyncStorage.getItem(`mood_${userId}`);
       const moodData = moodJson ? JSON.parse(moodJson) : [];
       
-      // Загружаем дневник
       const journalJson = await AsyncStorage.getItem(`journal_${userId}`);
       const journalData = journalJson ? JSON.parse(journalJson) : [];
 
-      console.log('📊 Загруженные данные:', {
+      console.log('Загруженные данные:', {
         tests: testsData.length,
         sleep: sleepData.length,
         mood: moodData.length,
@@ -86,7 +104,7 @@ export default function StatisticsScreen({ navigation, userData }) {
       });
     } catch (error) {
       console.error('Error loading statistics:', error);
-      Alert.alert('❌ Ошибка', 'Не удалось загрузить статистику');
+      Alert.alert('Ошибка', 'Не удалось загрузить статистику');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -212,10 +230,14 @@ export default function StatisticsScreen({ navigation, userData }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={styles.loadingText}>Загрузка статистики...</Text>
-      </View>
+      <ScreenWrapper>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Загрузка статистики...
+          </Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
@@ -227,81 +249,88 @@ export default function StatisticsScreen({ navigation, userData }) {
   const maxActivity = Math.max(...weeklyActivity.map(d => d.count), 1);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScreenWrapper>
       <ScrollView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
         }
       >
         {/* Заголовок */}
         <View style={styles.header}>
-          <Text style={styles.title}>📊 Статистика</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>📊 Статистика</Text>
           <TouchableOpacity onPress={handleRefresh}>
-            <Ionicons name="refresh" size={24} color="#2ecc71" />
+            <Ionicons name="refresh" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Общая активность */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>📈 Общая активность</Text>
+        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.summaryTitle, { color: theme.colors.text }]}>📈 Общая активность</Text>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{testStats.count}</Text>
-              <Text style={styles.summaryLabel}>Тестов</Text>
+              <Text style={[styles.summaryValue, { color: theme.colors.text }]}>{testStats.count}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Тестов</Text>
             </View>
-            <View style={styles.summaryDivider} />
+            <View style={[styles.summaryDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{sleepStats.count}</Text>
-              <Text style={styles.summaryLabel}>Записей сна</Text>
+              <Text style={[styles.summaryValue, { color: theme.colors.text }]}>{sleepStats.count}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Записей сна</Text>
             </View>
-            <View style={styles.summaryDivider} />
+            <View style={[styles.summaryDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{moodStats.count}</Text>
-              <Text style={styles.summaryLabel}>Отметок настроения</Text>
+              <Text style={[styles.summaryValue, { color: theme.colors.text }]}>{moodStats.count}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Отметок настроения</Text>
             </View>
-            <View style={styles.summaryDivider} />
+            <View style={[styles.summaryDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{journalStats.count}</Text>
-              <Text style={styles.summaryLabel}>Записей в дневнике</Text>
+              <Text style={[styles.summaryValue, { color: theme.colors.text }]}>{journalStats.count}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Записей в дневнике</Text>
             </View>
           </View>
         </View>
 
         {/* Секция тестов */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="document-text" size={24} color="#3498db" />
-            <Text style={styles.cardTitle}>📝 Тесты</Text>
+            <Ionicons name="document-text" size={24} color={theme.colors.info} />
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>📝 Тесты</Text>
           </View>
           <View style={styles.cardContent}>
             {testStats.count === 0 ? (
-              <Text style={styles.emptyText}>Нет пройденных тестов</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                Нет пройденных тестов
+              </Text>
             ) : (
               <>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Пройдено тестов:</Text>
-                  <Text style={styles.statValue}>{testStats.count}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Пройдено тестов:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{testStats.count}</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Средний результат:</Text>
-                  <Text style={styles.statValue}>{testStats.avg}%</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Средний результат:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{testStats.avg}%</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Лучший результат:</Text>
-                  <Text style={[styles.statValue, { color: '#2ecc71' }]}>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Лучший результат:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.success }]}>
                     {testStats.best}%
                   </Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Худший результат:</Text>
-                  <Text style={[styles.statValue, { color: '#e74c3c' }]}>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Худший результат:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.error }]}>
                     {testStats.worst}%
                   </Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Успешных тестов:</Text>
-                  <Text style={styles.statValue}>{testStats.highScores}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Успешных тестов:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{testStats.highScores}</Text>
                 </View>
               </>
             )}
@@ -309,37 +338,39 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
         {/* Секция сна */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="moon" size={24} color="#9b59b6" />
-            <Text style={styles.cardTitle}>😴 Сон</Text>
+            <Ionicons name="moon" size={24} color={theme.colors.purple} />
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>😴 Сон</Text>
           </View>
           <View style={styles.cardContent}>
             {sleepStats.count === 0 ? (
-              <Text style={styles.emptyText}>Нет записей о сне</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                Нет записей о сне
+              </Text>
             ) : (
               <>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Всего записей:</Text>
-                  <Text style={styles.statValue}>{sleepStats.count}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Всего записей:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{sleepStats.count}</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Средняя продолжительность:</Text>
-                  <Text style={styles.statValue}>{sleepStats.avg} ч</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Средняя продолжительность:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{sleepStats.avg} ч</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Всего часов сна:</Text>
-                  <Text style={styles.statValue}>{sleepStats.total} ч</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Всего часов сна:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{sleepStats.total} ч</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Рекорд:</Text>
-                  <Text style={[styles.statValue, { color: '#2ecc71' }]}>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Рекорд:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.success }]}>
                     {sleepStats.max} ч
                   </Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Качество сна:</Text>
-                  <Text style={styles.statValue}>{sleepStats.avgQuality}/5</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Качество сна:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{sleepStats.avgQuality}/5</Text>
                 </View>
               </>
             )}
@@ -347,57 +378,58 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
         {/* Секция настроения */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="happy" size={24} color="#e67e22" />
-            <Text style={styles.cardTitle}>😊 Настроение</Text>
+            <Ionicons name="happy" size={24} color={theme.colors.orange} />
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>😊 Настроение</Text>
           </View>
           <View style={styles.cardContent}>
             {moodStats.count === 0 ? (
-              <Text style={styles.emptyText}>Нет отметок настроения</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                Нет отметок настроения
+              </Text>
             ) : (
               <>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Всего отметок:</Text>
-                  <Text style={styles.statValue}>{moodStats.count}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Всего отметок:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{moodStats.count}</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Средняя оценка:</Text>
-                  <Text style={styles.statValue}>{moodStats.avg}/5</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Средняя оценка:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{moodStats.avg}/5</Text>
                 </View>
                 
                 <View style={styles.moodChart}>
                   {[
-                    { value: 5, emoji: '😊', label: 'Отлично' },
-                    { value: 4, emoji: '🙂', label: 'Хорошо' },
-                    { value: 3, emoji: '😐', label: 'Нормально' },
-                    { value: 2, emoji: '😔', label: 'Плохо' },
-                    { value: 1, emoji: '😢', label: 'Очень плохо' }
+                    { value: 5, emoji: '😊', label: 'Отлично', color: theme.colors.success },
+                    { value: 4, emoji: '🙂', label: 'Хорошо', color: theme.colors.success },
+                    { value: 3, emoji: '😐', label: 'Нормально', color: theme.colors.warning },
+                    { value: 2, emoji: '😔', label: 'Плохо', color: theme.colors.warning },
+                    { value: 1, emoji: '😢', label: 'Очень плохо', color: theme.colors.error }
                   ].map((item) => {
                     const count = moodStats.distribution[item.value] || 0;
                     const total = moodStats.count;
                     const percentage = total > 0 ? (count / total * 100) : 0;
-                    const colors = {
-                      5: '#2ecc71', 4: '#27ae60', 3: '#f39c12', 2: '#e67e22', 1: '#e74c3c'
-                    };
                     
                     return (
                       <View key={item.value} style={styles.moodBarRow}>
-                        <Text style={styles.moodBarLabel}>
+                        <Text style={[styles.moodBarLabel, { color: theme.colors.text }]}>
                           {item.emoji} {item.label}
                         </Text>
-                        <View style={styles.moodBarContainer}>
+                        <View style={[styles.moodBarContainer, { backgroundColor: theme.colors.border }]}>
                           <View 
                             style={[
                               styles.moodBar,
                               { 
                                 width: `${percentage}%`,
-                                backgroundColor: colors[item.value]
+                                backgroundColor: item.color
                               }
                             ]} 
                           />
                         </View>
-                        <Text style={styles.moodBarCount}>{count}</Text>
+                        <Text style={[styles.moodBarCount, { color: theme.colors.textSecondary }]}>
+                          {count}
+                        </Text>
                       </View>
                     );
                   })}
@@ -408,23 +440,25 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
         {/* Секция дневника */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="book" size={24} color="#1abc9c" />
-            <Text style={styles.cardTitle}>📔 Дневник</Text>
+            <Ionicons name="book" size={24} color={theme.colors.success} />
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>📔 Дневник</Text>
           </View>
           <View style={styles.cardContent}>
             {journalStats.count === 0 ? (
-              <Text style={styles.emptyText}>Нет записей в дневнике</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                Нет записей в дневнике
+              </Text>
             ) : (
               <>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Всего записей:</Text>
-                  <Text style={styles.statValue}>{journalStats.count}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Всего записей:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{journalStats.count}</Text>
                 </View>
                 <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Последняя запись:</Text>
-                  <Text style={styles.statValue}>{journalStats.lastEntry}</Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Последняя запись:</Text>
+                  <Text style={[styles.statValue, { color: theme.colors.text }]}>{journalStats.lastEntry}</Text>
                 </View>
               </>
             )}
@@ -432,28 +466,28 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
         {/* Активность по дням */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="calendar" size={24} color="#e74c3c" />
-            <Text style={styles.cardTitle}>📅 Активность по дням</Text>
+            <Ionicons name="calendar" size={24} color={theme.colors.error} />
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>📅 Активность по дням</Text>
           </View>
           <View style={styles.cardContent}>
             <View style={styles.weekChart}>
               {weeklyActivity.map((day, index) => (
                 <View key={index} style={styles.weekColumn}>
-                  <Text style={styles.weekDay}>{day.day}</Text>
-                  <View style={styles.weekBarContainer}>
+                  <Text style={[styles.weekDay, { color: theme.colors.textSecondary }]}>{day.day}</Text>
+                  <View style={[styles.weekBarContainer, { backgroundColor: theme.colors.border }]}>
                     <View 
                       style={[
                         styles.weekBar,
                         { 
                           height: (day.count / maxActivity) * 80,
-                          backgroundColor: day.count > 0 ? '#2ecc71' : '#ecf0f1'
+                          backgroundColor: day.count > 0 ? theme.colors.primary : theme.colors.border
                         }
                       ]} 
                     />
                   </View>
-                  <Text style={styles.weekCount}>{day.count}</Text>
+                  <Text style={[styles.weekCount, { color: theme.colors.text }]}>{day.count}</Text>
                 </View>
               ))}
             </View>
@@ -461,24 +495,24 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
         {/* Прогресс */}
-        <View style={styles.progressCard}>
-          <Text style={styles.progressTitle}>🏆 Ваш прогресс</Text>
+        <View style={[styles.progressCard, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.progressTitle, { color: theme.colors.text }]}>🏆 Ваш прогресс</Text>
           <View style={styles.progressStats}>
             <View style={styles.progressItem}>
-              <Ionicons name="flame" size={20} color="#e67e22" />
-              <Text style={styles.progressLabel}>
+              <Ionicons name="flame" size={20} color={theme.colors.orange} />
+              <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>
                 {testStats.count + sleepStats.count + moodStats.count + journalStats.count} действий
               </Text>
             </View>
             <View style={styles.progressItem}>
-              <Ionicons name="trophy" size={20} color="#f39c12" />
-              <Text style={styles.progressLabel}>
+              <Ionicons name="trophy" size={20} color={theme.colors.warning} />
+              <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>
                 {testStats.highScores} успешных тестов
               </Text>
             </View>
             <View style={styles.progressItem}>
-              <Ionicons name="heart" size={20} color="#e74c3c" />
-              <Text style={styles.progressLabel}>
+              <Ionicons name="heart" size={20} color={theme.colors.error} />
+              <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>
                 {moodStats.avg > 0 ? `${moodStats.avg}/5 среднее настроение` : 'Нет данных'}
               </Text>
             </View>
@@ -486,6 +520,6 @@ export default function StatisticsScreen({ navigation, userData }) {
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

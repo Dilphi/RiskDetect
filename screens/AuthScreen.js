@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   TextInput, 
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
@@ -24,6 +25,32 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          // Скрываем навигационную панель
+          await NavigationBar.setVisibilityAsync('hidden');
+          
+          // Настраиваем цвет кнопок в зависимости от темы
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+
+    
+      return () => {
+        NavigationBar.setVisibilityAsync('visible');
+        NavigationBar.setButtonStyleAsync('dark');
+      };
+    }
+  }, [theme.dark]); 
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {

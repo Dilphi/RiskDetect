@@ -5,13 +5,16 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 
-import styles from '../styles/HomeStyles'
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
+import styles from '../styles/HomeStyles';
 
 export default function HomeScreen({ navigation, userData }) {
   const [user, setUser] = useState(userData);
@@ -23,13 +26,33 @@ export default function HomeScreen({ navigation, userData }) {
     avgSleepHours: 0,
     moodScore: 0
   });
+  const { theme } = useTheme();
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+
+    }
+  }, [theme.dark]);
 
   const moodOptions = [
-    { id: 1, emoji: '😊', label: 'Отлично', value: 5, color: '#2ecc71' },
-    { id: 2, emoji: '🙂', label: 'Хорошо', value: 4, color: '#27ae60' },
-    { id: 3, emoji: '😐', label: 'Нормально', value: 3, color: '#f39c12' },
-    { id: 4, emoji: '😔', label: 'Плохо', value: 2, color: '#e67e22' },
-    { id: 5, emoji: '😢', label: 'Очень плохо', value: 1, color: '#e74c3c' },
+    { id: 1, emoji: '😊', label: 'Отлично', value: 5, color: theme.colors.success },
+    { id: 2, emoji: '🙂', label: 'Хорошо', value: 4, color: theme.colors.success },
+    { id: 3, emoji: '😐', label: 'Нормально', value: 3, color: theme.colors.warning },
+    { id: 4, emoji: '😔', label: 'Плохо', value: 2, color: theme.colors.warning },
+    { id: 5, emoji: '😢', label: 'Очень плохо', value: 1, color: theme.colors.error },
   ];
 
   useEffect(() => {
@@ -136,65 +159,85 @@ export default function HomeScreen({ navigation, userData }) {
 
   const getRiskColor = (level) => {
     switch (level?.toLowerCase()) {
-      case 'низкий': return '#2ecc71';
-      case 'умеренный': return '#f39c12';
-      case 'высокий': return '#e74c3c';
-      default: return '#95a5a6';
+      case 'низкий': return theme.colors.success;
+      case 'умеренный': return theme.colors.warning;
+      case 'высокий': return theme.colors.error;
+      default: return theme.colors.lightGray;
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScreenWrapper>
       <ScrollView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
         }
       >
         {/* Приветствие */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Привет, {user?.name?.split(' ')[0] || 'Пользователь'}!</Text>
-            <Text style={styles.date}>{new Date().toLocaleDateString('ru-RU', { 
-              weekday: 'long', 
-              day: 'numeric', 
-              month: 'long' 
-            })}</Text>
+            <Text style={[styles.greeting, { color: theme.colors.text }]}>
+              Привет, {user?.name?.split(' ')[0] || 'Пользователь'}!
+            </Text>
+            <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
+              {new Date().toLocaleDateString('ru-RU', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long' 
+              })}
+            </Text>
           </View>
           <TouchableOpacity 
             style={styles.emergencyIcon}
             onPress={handleEmergency}
           >
-            <Ionicons name="alert-circle" size={32} color="#e74c3c" />
+            <Ionicons name="alert-circle" size={32} color={theme.colors.error} />
           </TouchableOpacity>
         </View>
 
         {/* Риск статус */}
         <TouchableOpacity 
-          style={[styles.riskCard, { borderLeftColor: getRiskColor(user?.riskLevel) }]}
+          style={[styles.riskCard, { 
+            borderLeftColor: getRiskColor(user?.riskLevel),
+            backgroundColor: theme.colors.card 
+          }]}
           onPress={() => navigation.navigate('Statistics')}
         >
           <View style={styles.riskHeader}>
-            <Text style={styles.riskTitle}>Уровень риска</Text>
+            <Text style={[styles.riskTitle, { color: theme.colors.text }]}>Уровень риска</Text>
             <View style={[styles.riskBadge, { backgroundColor: getRiskColor(user?.riskLevel) }]}>
-              <Text style={styles.riskBadgeText}>{user?.riskLevel || 'низкий'}</Text>
+              <Text style={[styles.riskBadgeText, { color: theme.colors.white }]}>
+                {user?.riskLevel || 'низкий'}
+              </Text>
             </View>
           </View>
-          <Text style={styles.riskDescription}>
+          <Text style={[styles.riskDescription, { color: theme.colors.textSecondary }]}>
             {user?.riskLevel === 'низкий' ? 'Ваше состояние стабильно. Продолжайте следить за собой.' :
              user?.riskLevel === 'умеренный' ? 'Рекомендуется обратить внимание на свое состояние.' :
              'Рекомендуется немедленно обратиться к психологу.'}
           </Text>
           <View style={styles.riskFooter}>
-            <Text style={styles.riskLink}>Подробная статистика →</Text>
+            <Text style={[styles.riskLink, { color: theme.colors.primary }]}>
+              Подробная статистика →
+            </Text>
           </View>
         </TouchableOpacity>
 
         {/* Настроение */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Как вы себя чувствуете?</Text>
-          <Text style={styles.cardSubtitle}>Выберите ваше настроение сегодня</Text>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
+            Как вы себя чувствуете?
+          </Text>
+          <Text style={[styles.cardSubtitle, { color: theme.colors.textSecondary }]}>
+            Выберите ваше настроение сегодня
+          </Text>
           
           <View style={styles.moodContainer}>
             {moodOptions.map((mood) => (
@@ -209,7 +252,9 @@ export default function HomeScreen({ navigation, userData }) {
                 <View style={[styles.moodEmojiContainer, { backgroundColor: mood.color + '20' }]}>
                   <Text style={styles.moodEmoji}>{mood.emoji}</Text>
                 </View>
-                <Text style={styles.moodLabel}>{mood.label}</Text>
+                <Text style={[styles.moodLabel, { color: theme.colors.text }]}>
+                  {mood.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -218,99 +263,115 @@ export default function HomeScreen({ navigation, userData }) {
         {/* Статистика */}
         <View style={styles.statsRow}>
           <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#3498db20' }]}
+            style={[styles.statCard, { backgroundColor: theme.colors.card }]}
             onPress={() => navigation.navigate('Statistics')}
           >
-            <Ionicons name="document-text" size={28} color="#3498db" />
-            <Text style={styles.statNumber}>{stats.testsCompleted}</Text>
-            <Text style={styles.statLabel}>Тестов пройдено</Text>
+            <Ionicons name="document-text" size={28} color={theme.colors.info} />
+            <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+              {stats.testsCompleted}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              Тестов пройдено
+            </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#9b59b620' }]}
+            style={[styles.statCard, { backgroundColor: theme.colors.card }]}
             onPress={() => navigation.navigate('Сон')}
           >
-            <Ionicons name="moon" size={28} color="#9b59b6" />
-            <Text style={styles.statNumber}>{stats.avgSleepHours} ч</Text>
-            <Text style={styles.statLabel}>Сон в среднем</Text>
+            <Ionicons name="moon" size={28} color={theme.colors.purple} />
+            <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+              {stats.avgSleepHours} ч
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              Сон в среднем
+            </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.statCard, { backgroundColor: '#e67e2220' }]}
+            style={[styles.statCard, { backgroundColor: theme.colors.card }]}
             onPress={() => navigation.navigate('Journal')}
           >
-            <Ionicons name="happy" size={28} color="#e67e22" />
-            <Text style={styles.statNumber}>{stats.moodScore}</Text>
-            <Text style={styles.statLabel}>Настроение</Text>
+            <Ionicons name="happy" size={28} color={theme.colors.orange} />
+            <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+              {stats.moodScore}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+              Настроение
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Быстрые действия */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Быстрые действия</Text>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Быстрые действия</Text>
           
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity 
               style={styles.quickAction}
               onPress={() => navigation.navigate('Тесты')}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#2ecc7120' }]}>
-                <Ionicons name="help-circle" size={24} color="#2ecc71" />
+              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                <Ionicons name="help-circle" size={24} color={theme.colors.primary} />
               </View>
-              <Text style={styles.quickActionText}>Пройти тест</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Пройти тест</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.quickAction}
               onPress={() => navigation.navigate('Journal')}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#3498db20' }]}>
-                <Ionicons name="book" size={24} color="#3498db" />
+              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.info + '20' }]}>
+                <Ionicons name="book" size={24} color={theme.colors.info} />
               </View>
-              <Text style={styles.quickActionText}>Дневник</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Дневник</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.quickAction}
               onPress={() => navigation.navigate('Psychologist')}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#9b59b620' }]}>
-                <Ionicons name="people" size={24} color="#9b59b6" />
+              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.purple + '20' }]}>
+                <Ionicons name="people" size={24} color={theme.colors.purple} />
               </View>
-              <Text style={styles.quickActionText}>Психолог</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Психолог</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.quickAction}
               onPress={() => navigation.navigate('Scan')}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#e67e2220' }]}>
-                <Ionicons name="qr-code" size={24} color="#e67e22" />
+              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.orange + '20' }]}>
+                <Ionicons name="qr-code" size={24} color={theme.colors.orange} />
               </View>
-              <Text style={styles.quickActionText}>Сканер</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Сканер</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Рекомендация дня */}
-        <View style={[styles.card, styles.recommendationCard]}>
+        <View style={[styles.card, styles.recommendationCard, { backgroundColor: theme.colors.card }]}>
           <View style={styles.recommendationHeader}>
-            <Ionicons name="bulb" size={24} color="#f39c12" />
-            <Text style={styles.recommendationTitle}>Рекомендация дня</Text>
+            <Ionicons name="bulb" size={24} color={theme.colors.warning} />
+            <Text style={[styles.recommendationTitle, { color: theme.colors.text }]}>
+              Рекомендация дня
+            </Text>
           </View>
-          <Text style={styles.recommendationText}>
+          <Text style={[styles.recommendationText, { color: theme.colors.textSecondary }]}>
             Сделайте 5 глубоких вдохов. Это поможет снизить уровень стресса и улучшить концентрацию.
           </Text>
         </View>
 
         {/* Мотивация */}
-        <View style={styles.quoteCard}>
-          <Text style={styles.quoteText}>
+        <View style={[styles.quoteCard, { backgroundColor: theme.colors.info + '20' }]}>
+          <Text style={[styles.quoteText, { color: theme.colors.text }]}>
             "Забота о себе — это не эгоизм, а необходимость."
           </Text>
-          <Text style={styles.quoteAuthor}>— RiskDetect</Text>
+          <Text style={[styles.quoteAuthor, { color: theme.colors.textSecondary }]}>
+            — RiskDetect
+          </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 
-import styles from '../styles/TestStyles'
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
+import styles from '../styles/TestStyles';
 
 // Реальные психологические тесты
 const tests = [
@@ -248,10 +250,30 @@ export default function TestScreen({ navigation, userData }) {
   const [testResult, setTestResult] = useState(null);
   const [completedTests, setCompletedTests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme(); 
 
   useEffect(() => {
     loadCompletedTests();
-  }, []);
+
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+
+      return () => {
+        NavigationBar.setButtonStyleAsync('dark');
+      };
+    }
+  }, [theme.dark]);
+
 
   const loadCompletedTests = async () => {
     try {
@@ -388,30 +410,33 @@ export default function TestScreen({ navigation, userData }) {
       animationType="slide"
       transparent={true}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedTest?.title}</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{selectedTest?.title}</Text>
             <TouchableOpacity onPress={() => setShowTestModal(false)}>
-              <Ionicons name="close" size={24} color="#7f8c8d" />
+              <Ionicons name="close" size={24} color={theme.colors.lightGray} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.progressBar}>
+          <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
             <View 
               style={[
                 styles.progressFill, 
-                { width: `${((currentQuestion + 1) / selectedTest?.questions.length) * 100}%` }
+                { 
+                  width: `${((currentQuestion + 1) / selectedTest?.questions.length) * 100}%`,
+                  backgroundColor: theme.colors.primary 
+                }
               ]} 
             />
           </View>
           
-          <Text style={styles.questionCounter}>
+          <Text style={[styles.questionCounter, { color: theme.colors.textSecondary }]}>
             Вопрос {currentQuestion + 1} из {selectedTest?.questions.length}
           </Text>
 
           <ScrollView style={styles.questionContainer}>
-            <Text style={styles.questionText}>
+            <Text style={[styles.questionText, { color: theme.colors.text }]}>
               {selectedTest?.questions[currentQuestion].text}
             </Text>
 
@@ -421,13 +446,17 @@ export default function TestScreen({ navigation, userData }) {
                   key={index}
                   style={[
                     styles.optionButton,
-                    answers[currentQuestion] === option.score && styles.optionButtonSelected
+                    answers[currentQuestion] === option.score && styles.optionButtonSelected,
+                    { 
+                      backgroundColor: answers[currentQuestion] === option.score ? theme.colors.primary : theme.colors.background,
+                      borderColor: theme.colors.border
+                    }
                   ]}
                   onPress={() => selectAnswer(option.score)}
                 >
                   <Text style={[
                     styles.optionText,
-                    answers[currentQuestion] === option.score && styles.optionTextSelected
+                    { color: answers[currentQuestion] === option.score ? theme.colors.white : theme.colors.text }
                   ]}>
                     {option.text}
                   </Text>
@@ -439,10 +468,10 @@ export default function TestScreen({ navigation, userData }) {
           <View style={styles.modalFooter}>
             {currentQuestion > 0 && (
               <TouchableOpacity 
-                style={[styles.modalButton, styles.prevButton]}
+                style={[styles.modalButton, styles.prevButton, { borderColor: theme.colors.border }]}
                 onPress={prevQuestion}
               >
-                <Text style={styles.prevButtonText}>Назад</Text>
+                <Text style={[styles.prevButtonText, { color: theme.colors.textSecondary }]}>Назад</Text>
               </TouchableOpacity>
             )}
             
@@ -450,11 +479,12 @@ export default function TestScreen({ navigation, userData }) {
               style={[
                 styles.modalButton, 
                 styles.nextButton,
+                { backgroundColor: theme.colors.primary },
                 currentQuestion === 0 && { flex: 1 }
               ]}
               onPress={nextQuestion}
             >
-              <Text style={styles.nextButtonText}>
+              <Text style={[styles.nextButtonText, { color: theme.colors.white }]}>
                 {currentQuestion === selectedTest?.questions.length - 1 ? 'Завершить' : 'Далее'}
               </Text>
             </TouchableOpacity>
@@ -470,119 +500,130 @@ export default function TestScreen({ navigation, userData }) {
       animationType="slide"
       transparent={true}
     >
-      <View style={styles.modalContainer}>
-        <View style={[styles.modalContent, styles.resultModal]}>
+      <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+        <View style={[styles.modalContent, styles.resultModal, { backgroundColor: theme.colors.card }]}>
           <View style={styles.resultIcon}>
-            <Ionicons name="checkmark-circle" size={64} color="#2ecc71" />
+            <Ionicons name="checkmark-circle" size={64} color={theme.colors.success} />
           </View>
           
-          <Text style={styles.resultTitle}>Тест завершен!</Text>
-          <Text style={styles.resultTestName}>{testResult?.testTitle}</Text>
+          <Text style={[styles.resultTitle, { color: theme.colors.text }]}>Тест завершен!</Text>
+          <Text style={[styles.resultTestName, { color: theme.colors.textSecondary }]}>{testResult?.testTitle}</Text>
           
           <View style={styles.scoreContainer}>
-            <Text style={styles.scoreLabel}>Ваш результат:</Text>
-            <Text style={styles.scoreValue}>{testResult?.score} / {testResult?.maxScore}</Text>
-            <Text style={styles.scorePercentage}>{testResult?.percentage}%</Text>
+            <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary }]}>Ваш результат:</Text>
+            <Text style={[styles.scoreValue, { color: theme.colors.text }]}>{testResult?.score} / {testResult?.maxScore}</Text>
+            <Text style={[styles.scorePercentage, { color: theme.colors.success }]}>{testResult?.percentage}%</Text>
           </View>
 
           <View style={styles.levelContainer}>
-            <Text style={styles.levelLabel}>Уровень:</Text>
+            <Text style={[styles.levelLabel, { color: theme.colors.textSecondary }]}>Уровень:</Text>
             <Text style={[
               styles.levelValue,
-              testResult?.level?.includes('Высокий') ? styles.highLevel :
-              testResult?.level?.includes('Умеренный') ? styles.moderateLevel :
-              styles.lowLevel
+              testResult?.level?.includes('Высокий') ? { color: theme.colors.error } :
+              testResult?.level?.includes('Умеренный') ? { color: theme.colors.warning } :
+              { color: theme.colors.success }
             ]}>
               {testResult?.level}
             </Text>
           </View>
 
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>{testResult?.description}</Text>
+          <View style={[styles.descriptionContainer, { backgroundColor: theme.colors.background }]}>
+            <Text style={[styles.descriptionText, { color: theme.colors.text }]}>{testResult?.description}</Text>
           </View>
 
           <View style={styles.recommendationsContainer}>
-            <Text style={styles.recommendationsTitle}>Рекомендации:</Text>
+            <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>Рекомендации:</Text>
             {testResult?.recommendations.map((rec, index) => (
               <View key={index} style={styles.recommendationItem}>
-                <Ionicons name="checkmark-circle" size={18} color="#2ecc71" />
-                <Text style={styles.recommendationText}>{rec}</Text>
+                <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                <Text style={[styles.recommendationText, { color: theme.colors.textSecondary }]}>{rec}</Text>
               </View>
             ))}
           </View>
 
           <TouchableOpacity 
-            style={styles.closeButton}
+            style={[styles.closeButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => {
               setShowResultModal(false);
               setTestResult(null);
             }}
           >
-            <Text style={styles.closeButtonText}>Готово</Text>
+            <Text style={[styles.closeButtonText, { color: theme.colors.white }]}>Готово</Text>
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
 
+  if (loading) {
+    return (
+      <ScreenWrapper>
+        <View style={[styles.loadingOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Обработка результатов...</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+    <ScreenWrapper>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Психологические тесты</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Психологические тесты</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
             Проходите тесты для оценки своего состояния и отслеживания динамики
           </Text>
         </View>
 
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Ваша статистика</Text>
+        <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>Ваша статистика</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{completedTests.length}</Text>
-              <Text style={styles.statLabel}>Тестов пройдено</Text>
+              <Text style={[styles.statNumber, { color: theme.colors.text }]}>{completedTests.length}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Тестов пройдено</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
+              <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {completedTests.length > 0 
                   ? Math.round(completedTests.reduce((sum, t) => sum + t.percentage, 0) / completedTests.length) 
                   : 0}%
               </Text>
-              <Text style={styles.statLabel}>Средний результат</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Средний результат</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Доступные тесты</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Доступные тесты</Text>
 
         {tests.map((test) => (
           <TouchableOpacity
             key={test.id}
-            style={styles.testCard}
+            style={[styles.testCard, { backgroundColor: theme.colors.card }]}
             onPress={() => startTest(test)}
           >
             <View style={styles.testHeader}>
-              <View style={[styles.testIcon, { backgroundColor: '#2ecc7120' }]}>
-                <Ionicons name="document-text" size={24} color="#2ecc71" />
+              <View style={[styles.testIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                <Ionicons name="document-text" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.testInfo}>
-                <Text style={styles.testTitle}>{test.title}</Text>
-                <Text style={styles.testTime}>
-                  <Ionicons name="time-outline" size={14} color="#7f8c8d" /> {test.time}
+                <Text style={[styles.testTitle, { color: theme.colors.text }]}>{test.title}</Text>
+                <Text style={[styles.testTime, { color: theme.colors.textSecondary }]}>
+                  <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} /> {test.time}
                 </Text>
               </View>
             </View>
             
-            <Text style={styles.testDescription}>{test.description}</Text>
+            <Text style={[styles.testDescription, { color: theme.colors.textSecondary }]}>{test.description}</Text>
             
             <View style={styles.testFooter}>
-              <Text style={styles.testQuestions}>
+              <Text style={[styles.testQuestions, { color: theme.colors.textSecondary }]}>
                 {test.questions.length} вопросов
               </Text>
               <View style={styles.startButton}>
-                <Text style={styles.startButtonText}>Начать тест</Text>
-                <Ionicons name="arrow-forward" size={16} color="#2ecc71" />
+                <Text style={[styles.startButtonText, { color: theme.colors.primary }]}>Начать тест</Text>
+                <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
               </View>
             </View>
           </TouchableOpacity>
@@ -590,24 +631,24 @@ export default function TestScreen({ navigation, userData }) {
 
         {completedTests.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>История тестов</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>История тестов</Text>
             {completedTests.slice(-3).reverse().map((test, index) => (
-              <View key={index} style={styles.historyCard}>
+              <View key={index} style={[styles.historyCard, { backgroundColor: theme.colors.card }]}>
                 <View style={styles.historyHeader}>
-                  <Text style={styles.historyTitle}>{test.testTitle}</Text>
-                  <Text style={styles.historyDate}>
+                  <Text style={[styles.historyTitle, { color: theme.colors.text }]}>{test.testTitle}</Text>
+                  <Text style={[styles.historyDate, { color: theme.colors.textSecondary }]}>
                     {new Date(test.date).toLocaleDateString('ru-RU')}
                   </Text>
                 </View>
                 <View style={styles.historyResult}>
-                  <Text style={styles.historyScore}>
+                  <Text style={[styles.historyScore, { color: theme.colors.textSecondary }]}>
                     Результат: {test.score} / {test.maxScore}
                   </Text>
                   <Text style={[
                     styles.historyLevel,
-                    test.level?.includes('Высокий') ? styles.highLevel :
-                    test.level?.includes('Умеренный') ? styles.moderateLevel :
-                    styles.lowLevel
+                    test.level?.includes('Высокий') ? { color: theme.colors.error } :
+                    test.level?.includes('Умеренный') ? { color: theme.colors.warning } :
+                    { color: theme.colors.success }
                   ]}>
                     {test.level}
                   </Text>
@@ -620,14 +661,6 @@ export default function TestScreen({ navigation, userData }) {
 
       {renderTestModal()}
       {renderResultModal()}
-
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#2ecc71" />
-          <Text style={styles.loadingText}>Обработка результатов...</Text>
-        </View>
-      )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
-

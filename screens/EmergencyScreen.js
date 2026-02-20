@@ -1,18 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react'; 
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Linking,
-  Alert
+  Alert,
+  Platform 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as NavigationBar from 'expo-navigation-bar';
 
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/EmergencyStyles';
 
 export default function EmergencyScreen({ navigation }) {
+  const { theme } = useTheme();
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+
+    }
+  }, [theme.dark]);
+
   const emergencyContacts = [
     {
       id: 1,
@@ -20,7 +44,7 @@ export default function EmergencyScreen({ navigation }) {
       number: '8-800-2000-122',
       description: 'Круглосуточная психологическая помощь для детей и взрослых',
       icon: 'call',
-      color: '#e74c3c'
+      color: theme.colors.error
     },
     {
       id: 2,
@@ -28,7 +52,7 @@ export default function EmergencyScreen({ navigation }) {
       number: '112',
       description: 'Экстренная помощь при чрезвычайных ситуациях',
       icon: 'warning',
-      color: '#f39c12'
+      color: theme.colors.warning
     },
     {
       id: 3,
@@ -36,7 +60,7 @@ export default function EmergencyScreen({ navigation }) {
       number: '8-800-2000-122',
       description: 'Помощь подросткам и молодежи в кризисных ситуациях',
       icon: 'people',
-      color: '#3498db'
+      color: theme.colors.info
     },
     {
       id: 4,
@@ -44,7 +68,7 @@ export default function EmergencyScreen({ navigation }) {
       number: '8-800-7000-600',
       description: 'Помощь женщинам, пострадавшим от насилия',
       icon: 'woman',
-      color: '#9b59b6'
+      color: theme.colors.purple
     }
   ];
 
@@ -71,7 +95,7 @@ export default function EmergencyScreen({ navigation }) {
 
   const handleCall = (number) => {
     Alert.alert(
-      '📞 Звонок',
+      'Звонок',
       `Позвонить по номеру ${number}?`,
       [
         { text: 'Отмена', style: 'cancel' },
@@ -84,28 +108,32 @@ export default function EmergencyScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScreenWrapper>
       <ScrollView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
         showsVerticalScrollIndicator={true}
       >
         {/* Заголовок */}
         <View style={styles.header}>
-          <Ionicons name="alert-circle" size={60} color="#e74c3c" />
-          <Text style={styles.title}>🚨 Экстренная помощь</Text>
-          <Text style={styles.subtitle}>
+          <Ionicons name="alert-circle" size={60} color={theme.colors.error} />
+          <Text style={[styles.title, { color: theme.colors.error }]}>
+            Экстренная помощь
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
             Если вам или кому-то рядом нужна помощь, не оставайтесь в одиночестве
           </Text>
         </View>
 
         {/* Телефоны экстренной помощи */}
         <View style={styles.emergencySection}>
-          <Text style={styles.sectionTitle}>📞 Круглосуточные телефоны</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Круглосуточные телефоны
+          </Text>
           {emergencyContacts.map((contact) => (
             <TouchableOpacity
               key={contact.id}
-              style={styles.emergencyCard}
+              style={[styles.emergencyCard, { backgroundColor: theme.colors.card }]}
               onPress={() => handleCall(contact.number)}
               activeOpacity={0.7}
             >
@@ -113,11 +141,15 @@ export default function EmergencyScreen({ navigation }) {
                 <Ionicons name={contact.icon} size={28} color={contact.color} />
               </View>
               <View style={styles.emergencyInfo}>
-                <Text style={styles.emergencyTitle}>{contact.title}</Text>
+                <Text style={[styles.emergencyTitle, { color: theme.colors.text }]}>
+                  {contact.title}
+                </Text>
                 <Text style={[styles.emergencyNumber, { color: contact.color }]}>
                   {contact.number}
                 </Text>
-                <Text style={styles.emergencyDescription}>{contact.description}</Text>
+                <Text style={[styles.emergencyDescription, { color: theme.colors.textSecondary }]}>
+                  {contact.description}
+                </Text>
               </View>
               <Ionicons name="call" size={24} color={contact.color} />
             </TouchableOpacity>
@@ -126,24 +158,30 @@ export default function EmergencyScreen({ navigation }) {
 
         {/* Что делать в кризисной ситуации */}
         <View style={styles.tipsSection}>
-          <Text style={styles.sectionTitle}>🆘 Что делать прямо сейчас</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Что делать прямо сейчас
+          </Text>
           {emergencyTips.map((tip) => (
-            <View key={tip.id} style={styles.tipCard}>
+            <View key={tip.id} style={[styles.tipCard, { backgroundColor: theme.colors.card }]}>
               <View style={styles.tipHeader}>
-                <View style={[styles.tipIcon, { backgroundColor: '#2ecc7120' }]}>
-                  <Ionicons name={tip.icon} size={24} color="#2ecc71" />
+                <View style={[styles.tipIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Ionicons name={tip.icon} size={24} color={theme.colors.primary} />
                 </View>
-                <Text style={styles.tipTitle}>{tip.title}</Text>
+                <Text style={[styles.tipTitle, { color: theme.colors.text }]}>
+                  {tip.title}
+                </Text>
               </View>
-              <Text style={styles.tipDescription}>{tip.description}</Text>
+              <Text style={[styles.tipDescription, { color: theme.colors.textSecondary }]}>
+                {tip.description}
+              </Text>
             </View>
           ))}
         </View>
 
         {/* Важная информация */}
-        <View style={styles.importantCard}>
-          <Ionicons name="information-circle" size={24} color="#3498db" />
-          <Text style={styles.importantText}>
+        <View style={[styles.importantCard, { backgroundColor: theme.colors.info + '20' }]}>
+          <Ionicons name="information-circle" size={24} color={theme.colors.info} />
+          <Text style={[styles.importantText, { color: theme.colors.text }]}>
             Все звонки бесплатны и анонимны. Помощь доступна 24/7. 
             Не стесняйтесь обращаться за помощью - это признак силы, а не слабости.
           </Text>
@@ -151,17 +189,19 @@ export default function EmergencyScreen({ navigation }) {
 
         {/* Кнопка чата */}
         <TouchableOpacity 
-          style={styles.chatButton}
+          style={[styles.chatButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => navigation.navigate('Psychologist')}
           activeOpacity={0.8}
         >
-          <Ionicons name="chatbubbles" size={24} color="white" />
-          <Text style={styles.chatButtonText}>Чат с психологом</Text>
+          <Ionicons name="chatbubbles" size={24} color={theme.colors.white} />
+          <Text style={[styles.chatButtonText, { color: theme.colors.white }]}>
+            Чат с психологом
+          </Text>
         </TouchableOpacity>
 
         {/* Дополнительный отступ снизу */}
         <View style={styles.bottomPadding} />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

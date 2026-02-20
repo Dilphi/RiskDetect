@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Text, 
   View, 
-  TextInput,  // ✅ ДОБАВЛЕНО!
+  TextInput,
   TouchableOpacity, 
   Alert,
   Modal,
@@ -14,18 +14,20 @@ import {
   Animated,
   Easing
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-audio';
+import * as NavigationBar from 'expo-navigation-bar';
 
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/ScanStyles';
 
 // Имитация Bluetooth модуля (в реальном проекте будет использоваться react-native-ble-plx)
 const mockBleManager = {
   scanForDevices: (callback) => {
-    // Имитация сканирования устройств
     setTimeout(() => {
       callback([
         {
@@ -79,16 +81,16 @@ const ownDevices = [
     generation: 9,
     colors: ['черный', 'синий', 'зеленый'],
     features: [
-      'heart_rate',      // Пульс
-      'sleep_tracking',  // Сон
-      'steps',           // Шаги
-      'calories',        // Калории
-      'stress',          // Стресс
-      'activity',        // Активность
-      'spo2',            // Кислород в крови
-      'temperature',     // Температура тела
-      'fall_detection',  // Обнаружение падения
-      'panic_button'     // Тревожная кнопка
+      'heart_rate',
+      'sleep_tracking',
+      'steps',
+      'calories',
+      'stress',
+      'activity',
+      'spo2',
+      'temperature',
+      'fall_detection',
+      'panic_button'
     ],
     sensors: [
       'PPG (фотоплетизмография)',
@@ -211,12 +213,31 @@ export default function ScanScreen({ navigation, userData }) {
   const [syncProgress, setSyncProgress] = useState(0);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [sound, setSound] = useState(null);
+  const { theme } = useTheme();
   
-  // ✅ Состояния для ручного ввода - ОБЪЯВЛЕНЫ ОДИН РАЗ!
+  // Состояния для ручного ввода
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualSerial, setManualSerial] = useState('');
   
   const scanLineAnimation = useRef(new Animated.Value(0)).current;
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+    }
+  }, [theme.dark]);
 
   useEffect(() => {
     loadPairedDevices();
@@ -264,7 +285,7 @@ export default function ScanScreen({ navigation, userData }) {
   const playScanSound = async () => {
     try {
       const { sound } = await Audio.Sound.createAsync(
-        require('../assets/scan.mp3') // Добавить звуковой файл
+        require('../assets/scan.mp3')
       );
       setSound(sound);
       await sound.playAsync();
@@ -273,7 +294,6 @@ export default function ScanScreen({ navigation, userData }) {
     }
   };
 
-  // Определение устройства по QR-коду
   const identifyDevice = (qrData) => {
     for (const device of ownDevices) {
       if (device.qr_pattern.test(qrData)) {
@@ -287,7 +307,6 @@ export default function ScanScreen({ navigation, userData }) {
     return null;
   };
 
-  // Обработка сканирования QR-кода
   const handleBarCodeScanned = async ({ type, data }) => {
     setScanned(true);
     Vibration.vibrate(200);
@@ -315,7 +334,6 @@ export default function ScanScreen({ navigation, userData }) {
     }
   };
 
-  // Поиск устройств через BLE
   const startBLEScan = () => {
     setIsScanning(true);
     setFoundDevices([]);
@@ -327,12 +345,10 @@ export default function ScanScreen({ navigation, userData }) {
     });
   };
 
-  // Подключение к устройству
   const connectToDevice = async (device) => {
     setIsConnecting(true);
     
     try {
-      // Имитация подключения
       await mockBleManager.connectToDevice(device.id);
       
       const connectedDevice = {
@@ -342,8 +358,6 @@ export default function ScanScreen({ navigation, userData }) {
       };
       
       setSelectedDevice(connectedDevice);
-      
-      // Синхронизация данных
       await syncDeviceData(connectedDevice);
       
     } catch (error) {
@@ -353,18 +367,15 @@ export default function ScanScreen({ navigation, userData }) {
     }
   };
 
-  // Синхронизация данных с устройством
   const syncDeviceData = async (device) => {
     setIsSyncing(true);
     setSyncProgress(0);
     
-    // Имитация синхронизации
     for (let i = 0; i <= 100; i += 10) {
       await new Promise(resolve => setTimeout(resolve, 200));
       setSyncProgress(i);
     }
     
-    // Генерация тестовых данных
     const healthData = {
       deviceId: device.id,
       deviceName: device.name,
@@ -384,16 +395,12 @@ export default function ScanScreen({ navigation, userData }) {
       battery: device.battery || 85
     };
 
-    // Сохраняем устройство в список сопряженных
     await savePairedDevice(device);
-    
-    // Сохраняем данные здоровья
     await saveHealthData(healthData);
     
     setIsSyncing(false);
   };
 
-  // Сохранение сопряженного устройства
   const savePairedDevice = async (device) => {
     try {
       const updatedDevices = [...pairedDevices, device];
@@ -404,7 +411,6 @@ export default function ScanScreen({ navigation, userData }) {
     }
   };
 
-  // Сохранение данных о здоровье
   const saveHealthData = async (healthData) => {
     try {
       const existingData = await AsyncStorage.getItem(`health_data_${userData?.id}`);
@@ -416,7 +422,6 @@ export default function ScanScreen({ navigation, userData }) {
     }
   };
 
-  // Подтверждение подключения
   const confirmConnection = () => {
     setShowResultModal(false);
     setScanned(false);
@@ -435,7 +440,6 @@ export default function ScanScreen({ navigation, userData }) {
     );
   };
 
-  // Ручной ввод данных устройства
   const handleManualEntry = () => {
     setShowManualModal(true);
   };
@@ -458,71 +462,82 @@ export default function ScanScreen({ navigation, userData }) {
 
   if (!permission) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={styles.message}>Запрос доступа к камере...</Text>
-      </View>
+      <ScreenWrapper>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
+            Запрос доступа к камере...
+          </Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   if (!permission.granted && scanMode === 'qr') {
     return (
-      <View style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera" size={64} color="#e74c3c" />
-          <Text style={styles.permissionTitle}>Нет доступа к камере</Text>
-          <Text style={styles.permissionMessage}>
+      <ScreenWrapper>
+        <View style={[styles.permissionContainer, { backgroundColor: theme.colors.background }]}>
+          <Ionicons name="camera" size={64} color={theme.colors.error} />
+          <Text style={[styles.permissionTitle, { color: theme.colors.text }]}>
+            Нет доступа к камере
+          </Text>
+          <Text style={[styles.permissionMessage, { color: theme.colors.textSecondary }]}>
             Для сканирования QR-кода устройства необходимо разрешить доступ к камере
           </Text>
           <TouchableOpacity 
-            style={styles.permissionButton}
+            style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]}
             onPress={requestPermission}
           >
-            <Text style={styles.permissionButtonText}>Разрешить камеру</Text>
+            <Text style={[styles.permissionButtonText, { color: theme.colors.white }]}>
+              Разрешить камеру
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.switchModeButton}
             onPress={() => setScanMode('ble')}
           >
-            <Text style={styles.switchModeText}>Искать через Bluetooth</Text>
+            <Text style={[styles.switchModeText, { color: theme.colors.primary }]}>
+              Искать через Bluetooth
+            </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Верхняя панель */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.header }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: theme.colors.white }]}>
           {scanMode === 'qr' ? 'Сканер устройства' : 
            scanMode === 'ble' ? 'Поиск устройств' : 'Подключение'}
         </Text>
         <TouchableOpacity onPress={() => setTorch(!torch)}>
-          <Ionicons name={torch ? "flash" : "flash-off"} size={24} color="white" />
+          <Ionicons name={torch ? "flash" : "flash-off"} size={24} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
       {/* Режим QR-сканирования */}
       {scanMode === 'qr' && (
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
-          }}
-          enableTorch={torch}
-        >
-          <View style={styles.overlay}>
+        
+        <Camera
+        style={styles.camera}
+        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        barCodeScannerSettings={{
+          barCodeTypes: ['qr'],
+        }}
+        torchMode={torch ? 'on' : 'off'}>
+        <View style={styles.overlay}>
             <View style={styles.scanFrame}>
               <Animated.View 
                 style={[
                   styles.scanLine,
                   {
+                    backgroundColor: theme.colors.primary,
                     transform: [{
                       translateY: scanLineAnimation.interpolate({
                         inputRange: [0, 1],
@@ -532,74 +547,86 @@ export default function ScanScreen({ navigation, userData }) {
                   }
                 ]} 
               />
-              <View style={[styles.corner, styles.cornerTL]} />
-              <View style={[styles.corner, styles.cornerTR]} />
-              <View style={[styles.corner, styles.cornerBL]} />
-              <View style={[styles.corner, styles.cornerBR]} />
+              <View style={[styles.corner, styles.cornerTL, { borderColor: theme.colors.primary }]} />
+              <View style={[styles.corner, styles.cornerTR, { borderColor: theme.colors.primary }]} />
+              <View style={[styles.corner, styles.cornerBL, { borderColor: theme.colors.primary }]} />
+              <View style={[styles.corner, styles.cornerBR, { borderColor: theme.colors.primary }]} />
             </View>
             
             <View style={styles.scanInfo}>
-              <Text style={styles.scanTitle}>Сканируйте QR-код устройства</Text>
-              <Text style={styles.scanSubtitle}>
+              <Text style={[styles.scanTitle, { color: theme.colors.white }]}>
+                Сканируйте QR-код устройства
+              </Text>
+              <Text style={[styles.scanSubtitle, { color: theme.colors.white }]}>
                 QR-код находится на задней панели браслета или часов
               </Text>
             </View>
 
             {scanned && (
               <TouchableOpacity 
-                style={styles.scanAgainButton}
+                style={[styles.scanAgainButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => setScanned(false)}
               >
-                <Ionicons name="refresh" size={20} color="white" />
-                <Text style={styles.scanAgainText}>Сканировать ещё раз</Text>
+                <Ionicons name="refresh" size={20} color={theme.colors.white} />
+                <Text style={[styles.scanAgainText, { color: theme.colors.white }]}>
+                  Сканировать ещё раз
+                </Text>
               </TouchableOpacity>
             )}
 
             <View style={styles.modeSwitcher}>
               <TouchableOpacity 
-                style={styles.modeButton}
+                style={[styles.modeButton, { backgroundColor: theme.colors.overlay }]}
                 onPress={() => setScanMode('ble')}
               >
-                <Ionicons name="bluetooth" size={20} color="white" />
-                <Text style={styles.modeButtonText}>Поиск по Bluetooth</Text>
+                <Ionicons name="bluetooth" size={20} color={theme.colors.white} />
+                <Text style={[styles.modeButtonText, { color: theme.colors.white }]}>
+                  Поиск по Bluetooth
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.modeButton}
+                style={[styles.modeButton, { backgroundColor: theme.colors.overlay }]}
                 onPress={() => setScanMode('manual')}
               >
-                <Ionicons name="create" size={20} color="white" />
-                <Text style={styles.modeButtonText}>Ввести вручную</Text>
+                <Ionicons name="create" size={20} color={theme.colors.white} />
+                <Text style={[styles.modeButtonText, { color: theme.colors.white }]}>
+                  Ввести вручную
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-        </CameraView>
+        </Camera>
       )}
 
       {/* Режим Bluetooth поиска */}
       {scanMode === 'ble' && (
-        <View style={styles.bleContainer}>
+        <View style={[styles.bleContainer, { backgroundColor: theme.colors.background }]}>
           <View style={styles.bleHeader}>
-            <Ionicons name="bluetooth" size={48} color="#3498db" />
-            <Text style={styles.bleTitle}>Поиск устройств</Text>
-            <Text style={styles.bleSubtitle}>
+            <Ionicons name="bluetooth" size={48} color={theme.colors.info} />
+            <Text style={[styles.bleTitle, { color: theme.colors.text }]}>Поиск устройств</Text>
+            <Text style={[styles.bleSubtitle, { color: theme.colors.textSecondary }]}>
               Убедитесь, что Bluetooth включен и устройство находится рядом
             </Text>
           </View>
 
           {!isScanning && foundDevices.length === 0 && (
             <TouchableOpacity 
-              style={styles.startScanButton}
+              style={[styles.startScanButton, { backgroundColor: theme.colors.primary }]}
               onPress={startBLEScan}
             >
-              <Ionicons name="search" size={24} color="white" />
-              <Text style={styles.startScanText}>Начать поиск</Text>
+              <Ionicons name="search" size={24} color={theme.colors.white} />
+              <Text style={[styles.startScanText, { color: theme.colors.white }]}>
+                Начать поиск
+              </Text>
             </TouchableOpacity>
           )}
 
           {isScanning && (
             <View style={styles.scanningContainer}>
-              <ActivityIndicator size="large" color="#2ecc71" />
-              <Text style={styles.scanningText}>Поиск устройств...</Text>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={[styles.scanningText, { color: theme.colors.textSecondary }]}>
+                Поиск устройств...
+              </Text>
             </View>
           )}
 
@@ -607,26 +634,31 @@ export default function ScanScreen({ navigation, userData }) {
             {foundDevices.map((device, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.deviceCard}
+                style={[styles.deviceCard, { backgroundColor: theme.colors.card }]}
                 onPress={() => connectToDevice(device)}
                 disabled={isConnecting}
               >
-                <View style={styles.deviceIcon}>
-                  <Ionicons name="watch" size={32} color="#2ecc71" />
+                <View style={[styles.deviceIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Ionicons name="watch" size={32} color={theme.colors.primary} />
                 </View>
                 <View style={styles.deviceInfo}>
-                  <Text style={styles.deviceName}>{device.name}</Text>
-                  <Text style={styles.deviceId}>ID: {device.id}</Text>
+                  <Text style={[styles.deviceName, { color: theme.colors.text }]}>{device.name}</Text>
+                  <Text style={[styles.deviceId, { color: theme.colors.textSecondary }]}>ID: {device.id}</Text>
                   <View style={styles.deviceDetails}>
-                    <Text style={styles.deviceDetail}>Батарея: {device.battery}%</Text>
-                    <Text style={styles.deviceDetail}>Версия: {device.firmware}</Text>
+                    <Text style={[styles.deviceDetail, { color: theme.colors.textSecondary }]}>
+                      Батарея: {device.battery}%
+                    </Text>
+                    <Text style={[styles.deviceDetail, { color: theme.colors.textSecondary }]}>
+                      Версия: {device.firmware}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.deviceSignal}>
                   <Ionicons 
                     name="cellular" 
                     size={24} 
-                    color={device.rssi > -50 ? "#2ecc71" : device.rssi > -70 ? "#f39c12" : "#e74c3c"} 
+                    color={device.rssi > -50 ? theme.colors.success : 
+                           device.rssi > -70 ? theme.colors.warning : theme.colors.error} 
                   />
                 </View>
               </TouchableOpacity>
@@ -637,32 +669,38 @@ export default function ScanScreen({ navigation, userData }) {
             style={styles.backToQRButton}
             onPress={() => setScanMode('qr')}
           >
-            <Text style={styles.backToQRText}>Сканировать QR-код</Text>
+            <Text style={[styles.backToQRText, { color: theme.colors.primary }]}>
+              Сканировать QR-код
+            </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Режим ручного ввода */}
       {scanMode === 'manual' && (
-        <View style={styles.manualContainer}>
-          <Ionicons name="create" size={64} color="#3498db" />
-          <Text style={styles.manualTitle}>Ручное подключение</Text>
-          <Text style={styles.manualSubtitle}>
+        <View style={[styles.manualContainer, { backgroundColor: theme.colors.background }]}>
+          <Ionicons name="create" size={64} color={theme.colors.info} />
+          <Text style={[styles.manualTitle, { color: theme.colors.text }]}>Ручное подключение</Text>
+          <Text style={[styles.manualSubtitle, { color: theme.colors.textSecondary }]}>
             Введите серийный номер, который находится на задней панели устройства
           </Text>
           
           <TouchableOpacity 
-            style={styles.manualInputButton}
+            style={[styles.manualInputButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleManualEntry}
           >
-            <Text style={styles.manualInputText}>Ввести серийный номер</Text>
+            <Text style={[styles.manualInputText, { color: theme.colors.white }]}>
+              Ввести серийный номер
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.backToQRButton}
             onPress={() => setScanMode('qr')}
           >
-            <Text style={styles.backToQRText}>Сканировать QR-код</Text>
+            <Text style={[styles.backToQRText, { color: theme.colors.primary }]}>
+              Сканировать QR-код
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -673,44 +711,54 @@ export default function ScanScreen({ navigation, userData }) {
         transparent
         animationType="slide"
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ручное подключение</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                Ручное подключение
+              </Text>
               <TouchableOpacity onPress={() => setShowManualModal(false)}>
-                <Ionicons name="close" size={24} color="#7f8c8d" />
+                <Ionicons name="close" size={24} color={theme.colors.lightGray} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
-              <Text style={styles.modalLabel}>Серийный номер</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Серийный номер</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text 
+                }]}
                 placeholder="Введите серийный номер"
-                placeholderTextColor="#95a5a6"
+                placeholderTextColor={theme.colors.lightGray}
                 value={manualSerial}
                 onChangeText={setManualSerial}
                 autoCapitalize="characters"
                 maxLength={20}
               />
-              <Text style={styles.modalHint}>
+              <Text style={[styles.modalHint, { color: theme.colors.textSecondary }]}>
                 Серийный номер находится на задней панели устройства
               </Text>
             </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonCancel]}
+                style={[styles.modalButton, styles.modalButtonCancel, { borderColor: theme.colors.border }]}
                 onPress={() => setShowManualModal(false)}
               >
-                <Text style={styles.modalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonConfirm]}
+                style={[styles.modalButton, styles.modalButtonConfirm, { backgroundColor: theme.colors.primary }]}
                 onPress={confirmManualEntry}
               >
-                <Text style={styles.modalButtonConfirmText}>Подключить</Text>
+                <Text style={[styles.modalButtonConfirmText, { color: theme.colors.white }]}>
+                  Подключить
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -723,51 +771,56 @@ export default function ScanScreen({ navigation, userData }) {
         transparent
         animationType="slide"
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalIcon}>
-              <Ionicons name="checkmark-circle" size={64} color="#2ecc71" />
+              <Ionicons name="checkmark-circle" size={64} color={theme.colors.success} />
             </View>
             
-            <Text style={styles.modalTitle}>Устройство найдено!</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Устройство найдено!</Text>
             
             {scanResult && (
-              <View style={styles.deviceInfoCard}>
+              <View style={[styles.deviceInfoCard, { backgroundColor: theme.colors.background }]}>
                 <View style={styles.deviceInfoHeader}>
-                  <Ionicons name="watch" size={32} color="#2ecc71" />
-                  <Text style={styles.deviceInfoName}>{scanResult.device.name}</Text>
+                  <Ionicons name="watch" size={32} color={theme.colors.primary} />
+                  <Text style={[styles.deviceInfoName, { color: theme.colors.text }]}>
+                    {scanResult.device.name}
+                  </Text>
                 </View>
                 
                 <View style={styles.deviceSpecs}>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Модель:</Text>
-                    <Text style={styles.specValue}>{scanResult.device.model}</Text>
+                    <Text style={[styles.specLabel, { color: theme.colors.textSecondary }]}>Модель:</Text>
+                    <Text style={[styles.specValue, { color: theme.colors.text }]}>{scanResult.device.model}</Text>
                   </View>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Серийный номер:</Text>
-                    <Text style={styles.specValue}>{scanResult.device.serialNumber}</Text>
+                    <Text style={[styles.specLabel, { color: theme.colors.textSecondary }]}>Серийный номер:</Text>
+                    <Text style={[styles.specValue, { color: theme.colors.text }]}>{scanResult.device.serialNumber}</Text>
                   </View>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Поколение:</Text>
-                    <Text style={styles.specValue}>{scanResult.device.generation}</Text>
+                    <Text style={[styles.specLabel, { color: theme.colors.textSecondary }]}>Поколение:</Text>
+                    <Text style={[styles.specValue, { color: theme.colors.text }]}>{scanResult.device.generation}</Text>
                   </View>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Батарея:</Text>
-                    <Text style={styles.specValue}>{scanResult.device.battery_life}</Text>
+                    <Text style={[styles.specLabel, { color: theme.colors.textSecondary }]}>Батарея:</Text>
+                    <Text style={[styles.specValue, { color: theme.colors.text }]}>{scanResult.device.battery_life}</Text>
                   </View>
                   <View style={styles.specRow}>
-                    <Text style={styles.specLabel}>Защита от воды:</Text>
-                    <Text style={styles.specValue}>{scanResult.device.water_resistant}</Text>
+                    <Text style={[styles.specLabel, { color: theme.colors.textSecondary }]}>Защита от воды:</Text>
+                    <Text style={[styles.specValue, { color: theme.colors.text }]}>{scanResult.device.water_resistant}</Text>
                   </View>
                 </View>
 
                 <View style={styles.featuresContainer}>
-                  <Text style={styles.featuresTitle}>Доступные функции:</Text>
+                  <Text style={[styles.featuresTitle, { color: theme.colors.text }]}>Доступные функции:</Text>
                   <View style={styles.featuresGrid}>
                     {scanResult.device.features.slice(0, 6).map((feature, index) => (
-                      <View key={index} style={styles.featureItem}>
-                        <Ionicons name="checkmark-circle" size={16} color="#2ecc71" />
-                        <Text style={styles.featureText}>
+                      <View key={index} style={[styles.featureItem, { 
+                        backgroundColor: theme.colors.primary + '20',
+                        borderColor: theme.colors.primary 
+                      }]}>
+                        <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
+                        <Text style={[styles.featureText, { color: theme.colors.text }]}>
                           {feature === 'heart_rate' ? 'Пульс' :
                            feature === 'sleep_tracking' ? 'Сон' :
                            feature === 'steps' ? 'Шаги' :
@@ -792,31 +845,42 @@ export default function ScanScreen({ navigation, userData }) {
 
             {isSyncing ? (
               <View style={styles.syncContainer}>
-                <ActivityIndicator size="large" color="#2ecc71" />
-                <Text style={styles.syncText}>Синхронизация данных...</Text>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${syncProgress}%` }]} />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={[styles.syncText, { color: theme.colors.textSecondary }]}>
+                  Синхронизация данных...
+                </Text>
+                <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
+                  <View style={[styles.progressFill, { 
+                    width: `${syncProgress}%`,
+                    backgroundColor: theme.colors.primary 
+                  }]} />
                 </View>
-                <Text style={styles.progressText}>{syncProgress}%</Text>
+                <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
+                  {syncProgress}%
+                </Text>
               </View>
             ) : (
               <View style={styles.modalButtons}>
                 <TouchableOpacity 
-                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  style={[styles.modalButton, styles.modalButtonCancel, { borderColor: theme.colors.border }]}
                   onPress={() => {
                     setShowResultModal(false);
                     setScanned(false);
                   }}
                 >
-                  <Text style={styles.modalButtonCancelText}>Отмена</Text>
+                  <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                    Отмена
+                  </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={[styles.modalButton, styles.modalButtonConfirm]}
+                  style={[styles.modalButton, styles.modalButtonConfirm, { backgroundColor: theme.colors.primary }]}
                   onPress={confirmConnection}
                   disabled={isConnecting || isSyncing}
                 >
-                  <Text style={styles.modalButtonConfirmText}>Подключить</Text>
+                  <Text style={[styles.modalButtonConfirmText, { color: theme.colors.white }]}>
+                    Подключить
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -826,23 +890,26 @@ export default function ScanScreen({ navigation, userData }) {
 
       {/* Индикатор подключения */}
       {isConnecting && (
-        <View style={styles.connectingOverlay}>
-          <ActivityIndicator size="large" color="#2ecc71" />
-          <Text style={styles.connectingText}>Подключение к устройству...</Text>
+        <View style={[styles.connectingOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.connectingText, { color: theme.colors.text }]}>
+            Подключение к устройству...
+          </Text>
         </View>
       )}
 
       {/* Список сопряженных устройств (если есть) */}
       {pairedDevices.length > 0 && scanMode === 'qr' && !scanned && (
-        <View style={styles.pairedDevicesBar}>
-          <Text style={styles.pairedDevicesTitle}>
+        <View style={[styles.pairedDevicesBar, { backgroundColor: theme.colors.primary + '90' }]}>
+          <Text style={[styles.pairedDevicesTitle, { color: theme.colors.white }]}>
             Сопряженные устройства: {pairedDevices.length}
           </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('MainTabs',{
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', {
             screen: 'Профиль'
-        
           })}>
-            <Text style={styles.pairedDevicesLink}>Управление</Text>
+            <Text style={[styles.pairedDevicesLink, { color: theme.colors.white }]}>
+              Управление
+            </Text>
           </TouchableOpacity>
         </View>
       )}

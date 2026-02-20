@@ -9,13 +9,17 @@ import {
   Switch,
   Modal,
   TextInput,
+  Linking,
+  Platform 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../components/ThemeContext';
 import { useNotifications } from '../components/NotificationContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/ProfileStyles';
 
 export default function ProfileScreen({ navigation, userData, onLogout }) {
@@ -28,11 +32,80 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
     age: '',
     occupation: ''
   });
+  
+  // Состояния для статистики
+  const [stats, setStats] = useState({
+    tests: 0,
+    sleep: 0,
+    mood: 0
+  });
 
-  // Используем контексты
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { notificationsEnabled, toggleNotifications, permissionStatus } = useNotifications();
 
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+    }
+  }, [theme.dark]);
+
+  // Загружаем пользователя при монтировании
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  // Загружаем статистику при каждом фокусе на экране
+  useFocusEffect(
+    React.useCallback(() => {
+      loadStats();
+    }, [user?.id, userData?.id])
+  );
+
+  // Загружаем пользователя
+  const loadUserData = async () => {
+    try {
+      const userJson = await AsyncStorage.getItem('currentUser');
+      if (userJson) {
+        setUser(JSON.parse(userJson));
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
+
+  // Загружаем статистику из AsyncStorage
+  const loadStats = async () => {
+    try {
+      const userId = user?.id || userData?.id;
+      if (!userId) return;
+
+      const testsJson = await AsyncStorage.getItem(`tests_${userId}`);
+      const sleepJson = await AsyncStorage.getItem(`sleep_${userId}`);
+      const moodJson = await AsyncStorage.getItem(`mood_${userId}`);
+      
+      setStats({
+        tests: testsJson ? JSON.parse(testsJson).length : 0,
+        sleep: sleepJson ? JSON.parse(sleepJson).length : 0,
+        mood: moodJson ? JSON.parse(moodJson).length : 0
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  // Обновляем форму при изменении пользователя
   useEffect(() => {
     if (user) {
       setEditForm({
@@ -81,9 +154,9 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
       setUser(updatedUser);
       setShowEditModal(false);
-      Alert.alert('✅ Успешно', 'Профиль обновлен');
+      Alert.alert('Успешно', 'Профиль обновлен');
     } catch (error) {
-      Alert.alert('❌ Ошибка', 'Не удалось обновить профиль');
+      Alert.alert('Ошибка', 'Не удалось обновить профиль');
     }
   };
 
@@ -107,9 +180,9 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
       '🗑️ Удаление аккаунта',
       'Вы уверены? Это действие нельзя отменить. Все ваши данные будут безвозвратно удалены.',
       [
-        { text: '❌ Отмена', style: 'cancel' },
+        { text: 'Отмена', style: 'cancel' },
         { 
-          text: '✅ Удалить', 
+          text: 'Удалить', 
           style: 'destructive',
           onPress: async () => {
             try {
@@ -131,7 +204,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 await onLogout();
               }
             } catch (error) {
-              Alert.alert('❌ Ошибка', 'Не удалось удалить аккаунт');
+              Alert.alert('Ошибка', 'Не удалось удалить аккаунт');
             }
           }
         }
@@ -141,18 +214,20 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
   if (!user) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Загрузка профиля...
-        </Text>
-      </View>
+      <ScreenWrapper>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Загрузка профиля...
+          </Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.container}>
+    <ScreenWrapper>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Заголовок */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.text }]}>Профиль</Text>
@@ -165,7 +240,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
         <View style={[styles.profileCard, { backgroundColor: theme.colors.card }]}>
           <View style={styles.avatarContainer}>
             <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-              <Text style={styles.avatarText}>
+              <Text style={[styles.avatarText, { color: theme.colors.white }]}>
                 {user.name ? user.name.charAt(0).toUpperCase() : 'П'}
               </Text>
             </View>
@@ -193,7 +268,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
           </View>
         </View>
 
-        {/* Статистика */}
+        {/* Статистика - ИСПРАВЛЕНО! используем stats, а не user */}
         <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Статистика</Text>
           
@@ -203,7 +278,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 <Ionicons name="document-text" size={24} color={theme.colors.secondary} />
               </View>
               <View>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{user.tests?.length || 0}</Text>
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>{stats.tests}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Тестов</Text>
               </View>
             </View>
@@ -213,7 +288,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 <Ionicons name="moon" size={24} color={theme.colors.purple} />
               </View>
               <View>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{user.sleepData?.length || 0}</Text>
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>{stats.sleep}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Записей сна</Text>
               </View>
             </View>
@@ -223,7 +298,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 <Ionicons name="happy" size={24} color={theme.colors.orange} />
               </View>
               <View>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{user.moodEntries?.length || 0}</Text>
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>{stats.mood}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Настроений</Text>
               </View>
             </View>
@@ -292,7 +367,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
             onPress={handleLogout}
           >
             <Ionicons name="log-out-outline" size={24} color={theme.colors.danger} />
-            <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+            <Text style={[styles.logoutButtonText, { color: theme.colors.danger }]}>Выйти из аккаунта</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -300,7 +375,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
             onPress={handleDeleteAccount}
           >
             <Ionicons name="trash-outline" size={24} color={theme.colors.danger} />
-            <Text style={styles.deleteButtonText}>Удалить аккаунт</Text>
+            <Text style={[styles.deleteButtonText, { color: theme.colors.danger }]}>Удалить аккаунт</Text>
           </TouchableOpacity>
         </View>
 
@@ -329,14 +404,18 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => setShowLogoutModal(false)}
               >
-                <Text style={styles.modalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonConfirm]}
+                style={[styles.modalButton, styles.modalButtonConfirm, { backgroundColor: theme.colors.danger }]}
                 onPress={confirmLogout}
               >
-                <Text style={styles.modalButtonConfirmText}>Выйти</Text>
+                <Text style={[styles.modalButtonConfirmText, { color: theme.colors.white }]}>
+                  Выйти
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -406,19 +485,23 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
                 style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => setShowEditModal(false)}
               >
-                <Text style={styles.modalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonSave]}
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: theme.colors.primary }]}
                 onPress={saveProfile}
               >
-                <Text style={styles.modalButtonSaveText}>Сохранить</Text>
+                <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
+                  Сохранить
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

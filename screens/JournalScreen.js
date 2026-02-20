@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
   Modal,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 
-import styles from '../styles/JournalStyles'
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
+import styles from '../styles/JournalStyles';
 
 export default function JournalScreen({ navigation, userData }) {
   const [entries, setEntries] = useState([]);
@@ -27,13 +29,33 @@ export default function JournalScreen({ navigation, userData }) {
     tags: []
   });
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const { theme } = useTheme();
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+
+    }
+  }, [theme.dark]);
 
   const moodOptions = [
-    { value: 1, label: 'Очень плохо', emoji: '😢', color: '#e74c3c' },
-    { value: 2, label: 'Плохо', emoji: '😔', color: '#e67e22' },
-    { value: 3, label: 'Нормально', emoji: '😐', color: '#f39c12' },
-    { value: 4, label: 'Хорошо', emoji: '🙂', color: '#27ae60' },
-    { value: 5, label: 'Отлично', emoji: '😊', color: '#2ecc71' },
+    { value: 1, label: 'Очень плохо', emoji: '😢', color: theme.colors.error },
+    { value: 2, label: 'Плохо', emoji: '😔', color: theme.colors.warning },
+    { value: 3, label: 'Нормально', emoji: '😐', color: theme.colors.warning },
+    { value: 4, label: 'Хорошо', emoji: '🙂', color: theme.colors.success },
+    { value: 5, label: 'Отлично', emoji: '😊', color: theme.colors.success },
   ];
 
   useEffect(() => {
@@ -97,6 +119,7 @@ export default function JournalScreen({ navigation, userData }) {
               const updatedEntries = entries.filter(entry => entry.id !== id);
               await AsyncStorage.setItem(`journal_${userData?.id}`, JSON.stringify(updatedEntries));
               setEntries(updatedEntries);
+              Alert.alert('Успешно', 'Запись удалена');
             } catch (error) {
               Alert.alert('Ошибка', 'Не удалось удалить запись');
             }
@@ -117,7 +140,7 @@ export default function JournalScreen({ navigation, userData }) {
 
   const getMoodColor = (value) => {
     const mood = moodOptions.find(m => m.value === value);
-    return mood?.color || '#95a5a6';
+    return mood?.color || theme.colors.lightGray;
   };
 
   const formatDate = (dateString) => {
@@ -141,29 +164,33 @@ export default function JournalScreen({ navigation, userData }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={styles.loadingText}>Загрузка дневника...</Text>
-      </View>
+      <ScreenWrapper>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Загрузка дневника...
+          </Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+    <ScreenWrapper>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Дневник</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Дневник</Text>
           <TouchableOpacity 
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => setShowAddModal(true)}
           >
-            <Ionicons name="add" size={24} color="white" />
+            <Ionicons name="add" size={24} color={theme.colors.white} />
           </TouchableOpacity>
         </View>
 
         {/* Статистика настроения */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Ваше настроение</Text>
+        <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>Ваше настроение</Text>
           <View style={styles.moodStats}>
             {[5,4,3,2,1].map(value => {
               const count = entries.filter(e => e.mood === value).length;
@@ -173,15 +200,20 @@ export default function JournalScreen({ navigation, userData }) {
               return (
                 <View key={value} style={styles.moodStat}>
                   <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                  <View style={styles.moodBarContainer}>
+                  <View style={[styles.moodBarContainer, { backgroundColor: theme.colors.border }]}>
                     <View 
                       style={[
                         styles.moodBar,
-                        { width: `${percentage}%`, backgroundColor: mood.color }
+                        { 
+                          width: `${percentage}%`, 
+                          backgroundColor: mood.color 
+                        }
                       ]} 
                     />
                   </View>
-                  <Text style={styles.moodPercentage}>{Math.round(percentage)}%</Text>
+                  <Text style={[styles.moodPercentage, { color: theme.colors.textSecondary }]}>
+                    {Math.round(percentage)}%
+                  </Text>
                 </View>
               );
             })}
@@ -190,27 +222,31 @@ export default function JournalScreen({ navigation, userData }) {
 
         {/* Записи */}
         <View style={styles.entriesSection}>
-          <Text style={styles.sectionTitle}>Мои записи</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Мои записи</Text>
           
           {entries.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="book-outline" size={64} color="#bdc3c7" />
-              <Text style={styles.emptyStateText}>В дневнике пока нет записей</Text>
-              <Text style={styles.emptyStateSubtext}>
+              <Ionicons name="book-outline" size={64} color={theme.colors.lightGray} />
+              <Text style={[styles.emptyStateText, { color: theme.colors.text }]}>
+                В дневнике пока нет записей
+              </Text>
+              <Text style={[styles.emptyStateSubtext, { color: theme.colors.textSecondary }]}>
                 Начните вести дневник, чтобы отслеживать свои мысли и чувства
               </Text>
               <TouchableOpacity 
-                style={styles.emptyStateButton}
+                style={[styles.emptyStateButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => setShowAddModal(true)}
               >
-                <Text style={styles.emptyStateButtonText}>Создать первую запись</Text>
+                <Text style={[styles.emptyStateButtonText, { color: theme.colors.white }]}>
+                  Создать первую запись
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
             entries.map((entry) => (
               <TouchableOpacity
                 key={entry.id}
-                style={styles.entryCard}
+                style={[styles.entryCard, { backgroundColor: theme.colors.card }]}
                 onPress={() => setSelectedEntry(entry)}
               >
                 <View style={styles.entryHeader}>
@@ -218,14 +254,18 @@ export default function JournalScreen({ navigation, userData }) {
                     <Text style={styles.entryMoodEmoji}>{entry.moodEmoji}</Text>
                   </View>
                   <View style={styles.entryInfo}>
-                    <Text style={styles.entryTitle}>{entry.title}</Text>
-                    <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
+                    <Text style={[styles.entryTitle, { color: theme.colors.text }]}>
+                      {entry.title}
+                    </Text>
+                    <Text style={[styles.entryDate, { color: theme.colors.textSecondary }]}>
+                      {formatDate(entry.date)}
+                    </Text>
                   </View>
                   <TouchableOpacity onPress={() => deleteEntry(entry.id)}>
-                    <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.entryPreview} numberOfLines={2}>
+                <Text style={[styles.entryPreview, { color: theme.colors.textSecondary }]} numberOfLines={2}>
                   {entry.content}
                 </Text>
               </TouchableOpacity>
@@ -240,29 +280,33 @@ export default function JournalScreen({ navigation, userData }) {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Новая запись</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Новая запись</Text>
               <TouchableOpacity onPress={() => {
                 setShowAddModal(false);
                 resetForm();
               }}>
-                <Ionicons name="close" size={24} color="#7f8c8d" />
+                <Ionicons name="close" size={24} color={theme.colors.gray} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalForm}>
-              <Text style={styles.modalLabel}>Заголовок</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Заголовок</Text>
               <TextInput
-                style={styles.titleInput}
+                style={[styles.titleInput, { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text 
+                }]}
                 placeholder="О чем вы думаете?"
-                placeholderTextColor="#95a5a6"
+                placeholderTextColor={theme.colors.lightGray}
                 value={newEntry.title}
                 onChangeText={(text) => setNewEntry({...newEntry, title: text})}
               />
 
-              <Text style={styles.modalLabel}>Ваше настроение</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Ваше настроение</Text>
               <View style={styles.moodSelector}>
                 {moodOptions.map((mood) => (
                   <TouchableOpacity
@@ -270,21 +314,30 @@ export default function JournalScreen({ navigation, userData }) {
                     style={[
                       styles.moodOption,
                       newEntry.mood === mood.value && styles.moodOptionSelected,
-                      { borderColor: mood.color }
+                      { 
+                        borderColor: mood.color,
+                        backgroundColor: newEntry.mood === mood.value ? mood.color + '20' : theme.colors.background
+                      }
                     ]}
                     onPress={() => setNewEntry({...newEntry, mood: mood.value})}
                   >
                     <Text style={styles.moodOptionEmoji}>{mood.emoji}</Text>
-                    <Text style={styles.moodOptionLabel}>{mood.label}</Text>
+                    <Text style={[styles.moodOptionLabel, { color: theme.colors.text }]}>
+                      {mood.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={styles.modalLabel}>Запись</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Запись</Text>
               <TextInput
-                style={styles.contentInput}
+                style={[styles.contentInput, { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text 
+                }]}
                 placeholder="Напишите свои мысли, чувства, переживания..."
-                placeholderTextColor="#95a5a6"
+                placeholderTextColor={theme.colors.lightGray}
                 value={newEntry.content}
                 onChangeText={(text) => setNewEntry({...newEntry, content: text})}
                 multiline
@@ -301,14 +354,18 @@ export default function JournalScreen({ navigation, userData }) {
                   resetForm();
                 }}
               >
-                <Text style={styles.modalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                  Отмена
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonSave]}
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: theme.colors.primary }]}
                 onPress={saveEntry}
               >
-                <Text style={styles.modalButtonSaveText}>Сохранить</Text>
+                <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
+                  Сохранить
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -321,12 +378,12 @@ export default function JournalScreen({ navigation, userData }) {
         animationType="fade"
         transparent={true}
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, styles.viewModal]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, styles.viewModal, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedEntry?.title}</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{selectedEntry?.title}</Text>
               <TouchableOpacity onPress={() => setSelectedEntry(null)}>
-                <Ionicons name="close" size={24} color="#7f8c8d" />
+                <Ionicons name="close" size={24} color={theme.colors.gray} />
               </TouchableOpacity>
             </View>
 
@@ -337,7 +394,7 @@ export default function JournalScreen({ navigation, userData }) {
                   {selectedEntry?.moodLabel}
                 </Text>
               </View>
-              <Text style={styles.viewEntryDate}>
+              <Text style={[styles.viewEntryDate, { color: theme.colors.textSecondary }]}>
                 {selectedEntry && new Date(selectedEntry.date).toLocaleDateString('ru-RU', {
                   day: 'numeric',
                   month: 'long',
@@ -349,7 +406,9 @@ export default function JournalScreen({ navigation, userData }) {
             </View>
 
             <ScrollView style={styles.viewEntryContent}>
-              <Text style={styles.viewEntryText}>{selectedEntry?.content}</Text>
+              <Text style={[styles.viewEntryText, { color: theme.colors.text }]}>
+                {selectedEntry?.content}
+              </Text>
             </ScrollView>
 
             <View style={styles.viewEntryActions}>
@@ -360,13 +419,15 @@ export default function JournalScreen({ navigation, userData }) {
                   setSelectedEntry(null);
                 }}
               >
-                <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-                <Text style={styles.viewEntryButtonDeleteText}>Удалить</Text>
+                <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                <Text style={[styles.viewEntryButtonDeleteText, { color: theme.colors.error }]}>
+                  Удалить
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

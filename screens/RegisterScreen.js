@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   TextInput, 
   Text, 
-  StyleSheet, 
   Alert,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -12,10 +11,12 @@ import {
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as NavigationBar from 'expo-navigation-bar'; 
 
-import styles from '../styles/RegisterStyles'
+import { useTheme } from '../components/ThemeContext';
+import { ScreenWrapper } from '../components/ScreenWrapper';
+import styles from '../styles/RegisterStyles';
 
 export default function RegisterScreen({ navigation, setIsAuthenticated, setUserData }) {
   const [formData, setFormData] = useState({
@@ -32,6 +33,25 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { theme } = useTheme();
+
+  // Настройка навигационной панели
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const configureNavigationBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setButtonStyleAsync(
+            theme.dark ? 'light' : 'dark'
+          );
+        } catch (error) {
+          console.error('Error configuring navigation bar:', error);
+        }
+      };
+
+      configureNavigationBar();
+    }
+  }, [theme.dark]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -126,38 +146,45 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <ScreenWrapper>
       <KeyboardAvoidingView 
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.colors.background }]}
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={styles.title}>Регистрация</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>Регистрация</Text>
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Создайте аккаунт для доступа ко всем функциям
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Имя и фамилия *</Text>
-              <View style={[styles.inputContainer, errors.name && styles.inputError]}>
-                <Ionicons name="person-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Имя и фамилия *</Text>
+              <View style={[
+                styles.inputContainer, 
+                errors.name && styles.inputError,
+                { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: errors.name ? theme.colors.error : theme.colors.border 
+                }
+              ]}>
+                <Ionicons name="person-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="Введите имя и фамилию"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   value={formData.name}
                   onChangeText={(text) => {
                     setFormData({...formData, name: text});
@@ -166,17 +193,24 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                   autoCapitalize="words"
                 />
               </View>
-              {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
+              {errors.name ? <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.name}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email *</Text>
-              <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <Ionicons name="mail-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Email *</Text>
+              <View style={[
+                styles.inputContainer, 
+                errors.email && styles.inputError,
+                { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: errors.email ? theme.colors.error : theme.colors.border 
+                }
+              ]}>
+                <Ionicons name="mail-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="example@mail.com"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   value={formData.email}
                   onChangeText={(text) => {
                     setFormData({...formData, email: text});
@@ -186,17 +220,24 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                   keyboardType="email-address"
                 />
               </View>
-              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+              {errors.email ? <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.email}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Пароль *</Text>
-              <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Пароль *</Text>
+              <View style={[
+                styles.inputContainer, 
+                errors.password && styles.inputError,
+                { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: errors.password ? theme.colors.error : theme.colors.border 
+                }
+              ]}>
+                <Ionicons name="lock-closed-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="Не менее 6 символов"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   secureTextEntry={!showPassword}
                   value={formData.password}
                   onChangeText={(text) => {
@@ -208,21 +249,28 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                   <Ionicons 
                     name={showPassword ? "eye-off-outline" : "eye-outline"} 
                     size={20} 
-                    color="#95a5a6" 
+                    color={theme.colors.lightGray} 
                   />
                 </TouchableOpacity>
               </View>
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+              {errors.password ? <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.password}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Подтверждение пароля *</Text>
-              <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Подтверждение пароля *</Text>
+              <View style={[
+                styles.inputContainer, 
+                errors.confirmPassword && styles.inputError,
+                { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: errors.confirmPassword ? theme.colors.error : theme.colors.border 
+                }
+              ]}>
+                <Ionicons name="lock-closed-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="Повторите пароль"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   secureTextEntry={!showConfirmPassword}
                   value={formData.confirmPassword}
                   onChangeText={(text) => {
@@ -234,21 +282,28 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                   <Ionicons 
                     name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
                     size={20} 
-                    color="#95a5a6" 
+                    color={theme.colors.lightGray} 
                   />
                 </TouchableOpacity>
               </View>
-              {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
+              {errors.confirmPassword ? <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.confirmPassword}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Возраст</Text>
-              <View style={[styles.inputContainer, errors.age && styles.inputError]}>
-                <Ionicons name="calendar-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Возраст</Text>
+              <View style={[
+                styles.inputContainer, 
+                errors.age && styles.inputError,
+                { 
+                  backgroundColor: theme.colors.background,
+                  borderColor: errors.age ? theme.colors.error : theme.colors.border 
+                }
+              ]}>
+                <Ionicons name="calendar-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="Необязательно"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   value={formData.age}
                   onChangeText={(text) => {
                     setFormData({...formData, age: text});
@@ -258,24 +313,28 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                   maxLength={3}
                 />
               </View>
-              {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
+              {errors.age ? <Text style={[styles.errorText, { color: theme.colors.error }]}>{errors.age}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Пол</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Пол</Text>
               <View style={styles.genderContainer}>
                 {['Мужской', 'Женский', 'Другой'].map((gender) => (
                   <TouchableOpacity
                     key={gender}
                     style={[
                       styles.genderButton,
-                      formData.gender === gender && styles.genderButtonSelected
+                      formData.gender === gender && styles.genderButtonSelected,
+                      { 
+                        backgroundColor: formData.gender === gender ? theme.colors.primary : theme.colors.background,
+                        borderColor: theme.colors.border
+                      }
                     ]}
                     onPress={() => setFormData({...formData, gender})}
                   >
                     <Text style={[
                       styles.genderButtonText,
-                      formData.gender === gender && styles.genderButtonTextSelected
+                      { color: formData.gender === gender ? theme.colors.white : theme.colors.text }
                     ]}>
                       {gender}
                     </Text>
@@ -285,13 +344,16 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Род деятельности</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="briefcase-outline" size={20} color="#95a5a6" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: theme.colors.text }]}>Род деятельности</Text>
+              <View style={[styles.inputContainer, { 
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border 
+              }]}>
+                <Ionicons name="briefcase-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.colors.text }]}
                   placeholder="Например: студент, учитель, врач"
-                  placeholderTextColor="#95a5a6"
+                  placeholderTextColor={theme.colors.lightGray}
                   value={formData.occupation}
                   onChangeText={(text) => setFormData({...formData, occupation: text})}
                 />
@@ -299,27 +361,30 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
             
             <TouchableOpacity 
-              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+              style={[
+                styles.registerButton, 
+                loading && styles.registerButtonDisabled,
+                { backgroundColor: loading ? theme.colors.lightGray : theme.colors.primary }
+              ]}
               onPress={handleRegister}
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={theme.colors.white} />
               ) : (
-                <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
+                <Text style={[styles.registerButtonText, { color: theme.colors.white }]}>Зарегистрироваться</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.loginLink}>
-            <Text style={styles.loginLinkText}>Уже есть аккаунт? </Text>
+            <Text style={[styles.loginLinkText, { color: theme.colors.textSecondary }]}>Уже есть аккаунт? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
-              <Text style={styles.loginLinkButton}>Войти</Text>
+              <Text style={[styles.loginLinkButton, { color: theme.colors.primary }]}>Войти</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
-
