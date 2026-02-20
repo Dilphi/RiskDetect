@@ -10,16 +10,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#7f8c8d',
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -73,13 +63,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     width: 40,
   },
-  moodBarContainer: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#ecf0f1',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
   moodBar: {
     height: '100%',
     borderRadius: 4,
@@ -119,17 +102,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
-  },
-  emptyStateButton: {
-    backgroundColor: '#2ecc71',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  emptyStateButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   entryCard: {
     backgroundColor: 'white',
@@ -346,6 +318,34 @@ const styles = StyleSheet.create({
     color: '#e74c3c',
     fontSize: 16,
     fontWeight: '500',
+  },
+  
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#7f8c8d',
+  },
+  moodBarContainer: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  emptyStateButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    backgroundColor: '#2ecc71',
+  },
+  emptyStateButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

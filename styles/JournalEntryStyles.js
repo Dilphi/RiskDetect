@@ -15,15 +15,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#e74c3c',
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -224,6 +215,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  loadingText: {
+  marginTop: 16,
+  fontSize: 16,
+},
+errorContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 20,
+},
+errorText: {
+  color: '#e74c3c',
+  fontSize: 18,
+  marginTop: 16,
+  marginBottom: 24,
+},
+errorButton: {
+  paddingHorizontal: 32,
+  paddingVertical: 12,
+  borderRadius: 8,
+},
+errorButtonText: {
+  fontSize: 16,
+  fontWeight: '600',
+},
+moodIconContainer: {
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 12,
+},
 });
+
 
 export default styles
