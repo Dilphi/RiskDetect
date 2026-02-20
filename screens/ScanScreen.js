@@ -14,7 +14,7 @@ import {
   Animated,
   Easing
 } from 'react-native';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
@@ -250,10 +250,10 @@ export default function ScanScreen({ navigation, userData }) {
   }, []);
 
   useEffect(() => {
-    if (permission && !permission.granted) {
+    if (permission && !permission.granted && scanMode === 'qr') {
       requestPermission();
     }
-  }, [permission]);
+  }, [permission, scanMode]);
 
   const startScanAnimation = () => {
     Animated.loop(
@@ -523,15 +523,15 @@ export default function ScanScreen({ navigation, userData }) {
 
       {/* Режим QR-сканирования */}
       {scanMode === 'qr' && (
-        
-        <Camera
-        style={styles.camera}
-        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-        barCodeScannerSettings={{
-          barCodeTypes: ['qr'],
-        }}
-        torchMode={torch ? 'on' : 'off'}>
-        <View style={styles.overlay}>
+        <CameraView
+          style={styles.camera}
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr'],
+          }}
+          enableTorch={torch}
+        >
+          <View style={styles.overlay}>
             <View style={styles.scanFrame}>
               <Animated.View 
                 style={[
@@ -595,7 +595,7 @@ export default function ScanScreen({ navigation, userData }) {
               </TouchableOpacity>
             </View>
           </View>
-        </Camera>
+        </CameraView>
       )}
 
       {/* Режим Bluetooth поиска */}
