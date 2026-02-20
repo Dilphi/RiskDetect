@@ -27,6 +27,12 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Состояния для модальных окон разделов
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  
   const [editForm, setEditForm] = useState({
     name: '',
     age: '',
@@ -268,7 +274,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
           </View>
         </View>
 
-        {/* Статистика - ИСПРАВЛЕНО! используем stats, а не user */}
+        {/* Статистика */}
         <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Статистика</Text>
           
@@ -335,7 +341,11 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
             />
           </View>
           
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}>
+          {/* Кнопка Конфиденциальность */}
+          <TouchableOpacity 
+            style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
+            onPress={() => setShowPrivacyModal(true)}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="lock-closed-outline" size={24} color={theme.colors.text} />
               <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Конфиденциальность</Text>
@@ -343,7 +353,11 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
             <Ionicons name="chevron-forward" size={24} color={theme.colors.lightGray} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}>
+          {/* Кнопка Помощь и поддержка */}
+          <TouchableOpacity 
+            style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
+            onPress={() => setShowHelpModal(true)}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="help-circle-outline" size={24} color={theme.colors.warning} />
               <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Помощь и поддержка</Text>
@@ -351,7 +365,11 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
             <Ionicons name="chevron-forward" size={24} color={theme.colors.lightGray} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}>
+          {/* Кнопка О приложении */}
+          <TouchableOpacity 
+            style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
+            onPress={() => setShowAboutModal(true)}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="information-circle-outline" size={24} color={theme.colors.secondary} />
               <Text style={[styles.settingLabel, { color: theme.colors.text }]}>О приложении</Text>
@@ -385,6 +403,292 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
           </Text>
         </View>
       </ScrollView>
+
+      {/* МОДАЛЬНЫЕ ОКНА РАЗДЕЛОВ */}
+
+      {/* Модальное окно Конфиденциальность */}
+      <Modal
+        visible={showPrivacyModal}
+        transparent
+        animationType="slide"
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, styles.editModal, { backgroundColor: theme.colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                <Ionicons name="lock-closed" size={24} color={theme.colors.primary} /> Конфиденциальность
+              </Text>
+              <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.lightGray} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={styles.modalBody}>
+                <Text style={[styles.modalText, { color: theme.colors.text, fontSize: 16, marginBottom: 20 }]}>
+                  🔐 Политика конфиденциальности
+                </Text>
+                
+                <View style={[styles.privacySection, { marginBottom: 20 }]}>
+                  <Text style={[styles.privacyTitle, { color: theme.colors.primary, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }]}>
+                    📊 Какие данные мы собираем:
+                  </Text>
+                  <Text style={[styles.privacyText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 10 }]}>
+                    • Результаты психологических тестов{'\n'}
+                    • Данные о сне (время, качество){'\n'}
+                    • Записи в дневнике настроения{'\n'}
+                    • Отметки настроения{'\n'}
+                    • Email и имя пользователя
+                  </Text>
+                </View>
+
+                <View style={[styles.privacySection, { marginBottom: 20 }]}>
+                  <Text style={[styles.privacyTitle, { color: theme.colors.primary, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }]}>
+                    🔒 Как мы защищаем данные:
+                  </Text>
+                  <Text style={[styles.privacyText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 10 }]}>
+                    • Все данные хранятся локально на вашем устройстве{'\n'}
+                    • Никакие данные не передаются на сервер{'\n'}
+                    • Полная анонимность{'\n'}
+                    • Возможность полного удаления аккаунта
+                  </Text>
+                </View>
+
+                <View style={[styles.privacySection, { marginBottom: 20 }]}>
+                  <Text style={[styles.privacyTitle, { color: theme.colors.primary, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }]}>
+                    📝 Ваши права:
+                  </Text>
+                  <Text style={[styles.privacyText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 10 }]}>
+                    • Вы можете в любой момент удалить свой аккаунт{'\n'}
+                    • Все ваши данные будут безвозвратно удалены{'\n'}
+                    • Вы можете экспортировать свои данные{'\n'}
+                    • Мы не передаём данные третьим лицам
+                  </Text>
+                </View>
+
+                <Text style={[styles.privacyDate, { color: theme.colors.lightGray, fontSize: 12, textAlign: 'center', marginTop: 20 }]}>
+                  Последнее обновление: 20 февраля 2026
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: theme.colors.primary }]}
+                onPress={() => setShowPrivacyModal(false)}
+              >
+                <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
+                  Понятно
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно Помощь и поддержка */}
+      <Modal
+        visible={showHelpModal}
+        transparent
+        animationType="slide"
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, styles.editModal, { backgroundColor: theme.colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                <Ionicons name="help-circle" size={24} color={theme.colors.warning} /> Помощь и поддержка
+              </Text>
+              <TouchableOpacity onPress={() => setShowHelpModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.lightGray} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={styles.modalBody}>
+                <Text style={[styles.modalText, { color: theme.colors.text, fontSize: 16, marginBottom: 20 }]}>
+                  ❓ Часто задаваемые вопросы
+                </Text>
+
+                <View style={[styles.helpSection, { marginBottom: 20 }]}>
+                  <Text style={[styles.helpQuestion, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    Как пройти тест?
+                  </Text>
+                  <Text style={[styles.helpAnswer, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 15 }]}>
+                    1. Перейдите на вкладку "Тесты"{'\n'}
+                    2. Выберите интересующий вас тест{'\n'}
+                    3. Ответьте на все вопросы{'\n'}
+                    4. Получите результат с рекомендациями
+                  </Text>
+                </View>
+
+                <View style={[styles.helpSection, { marginBottom: 20 }]}>
+                  <Text style={[styles.helpQuestion, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    Как вести дневник?
+                  </Text>
+                  <Text style={[styles.helpAnswer, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 15 }]}>
+                    1. Перейдите на вкладку "Дневник"{'\n'}
+                    2. Нажмите кнопку "+"{'\n'}
+                    3. Напишите свои мысли и отметьте настроение{'\n'}
+                    4. Сохраните запись
+                  </Text>
+                </View>
+
+                <View style={[styles.helpSection, { marginBottom: 20 }]}>
+                  <Text style={[styles.helpQuestion, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    Как отслеживать сон?
+                  </Text>
+                  <Text style={[styles.helpAnswer, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 15 }]}>
+                    1. Перейдите на вкладку "Сон"{'\n'}
+                    2. Нажмите кнопку "+"{'\n'}
+                    3. Укажите время сна и его качество{'\n'}
+                    4. Добавьте заметки (необязательно)
+                  </Text>
+                </View>
+
+                <View style={[styles.helpSection, { marginBottom: 20 }]}>
+                  <Text style={[styles.helpQuestion, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    Как получить экстренную помощь?
+                  </Text>
+                  <Text style={[styles.helpAnswer, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 15 }]}>
+                    • Нажмите на красную иконку с восклицательным знаком на главном экране{'\n'}
+                    • Перейдите на вкладку "Психолог"{'\n'}
+                    • Используйте экстренные контакты в верхней части экрана
+                  </Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.helpContactButton, { 
+                    backgroundColor: theme.colors.primary,
+                    padding: 15,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    marginTop: 10,
+                    marginBottom: 10
+                  }]}
+                  onPress={() => {
+                    setShowHelpModal(false);
+                    navigation.navigate('Psychologist');
+                  }}
+                >
+                  <Text style={[styles.helpContactButtonText, { color: theme.colors.white, fontSize: 16 }]}>
+                    Связаться с психологом
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: theme.colors.primary }]}
+                onPress={() => setShowHelpModal(false)}
+              >
+                <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
+                  Закрыть
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно О приложении */}
+      <Modal
+        visible={showAboutModal}
+        transparent
+        animationType="slide"
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, styles.editModal, { backgroundColor: theme.colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                <Ionicons name="information-circle" size={24} color={theme.colors.secondary} /> О приложении
+              </Text>
+              <TouchableOpacity onPress={() => setShowAboutModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.lightGray} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={[styles.aboutContainer, { alignItems: 'center', padding: 20 }]}>
+                <View style={[styles.aboutIcon, { 
+                  width: 100, 
+                  height: 100, 
+                  borderRadius: 20, 
+                  backgroundColor: theme.colors.primary + '20',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 20
+                }]}>
+                  <Ionicons name="heart" size={50} color={theme.colors.primary} />
+                </View>
+
+                <Text style={[styles.aboutTitle, { color: theme.colors.text, fontSize: 24, fontWeight: 'bold', marginBottom: 8 }]}>
+                  RiskDetect
+                </Text>
+                
+                <Text style={[styles.aboutVersion, { color: theme.colors.secondary, fontSize: 16, marginBottom: 20 }]}>
+                  Версия 1.0.0
+                </Text>
+
+                <Text style={[styles.aboutDescription, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 20 }]}>
+                  RiskDetect — это приложение для мониторинга психологического состояния. Мы помогаем отслеживать настроение, качество сна, проходить психологические тесты и вести дневник эмоций.
+                </Text>
+
+                <View style={[styles.aboutSection, { width: '100%', marginBottom: 15 }]}>
+                  <Text style={[styles.aboutSectionTitle, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    ✨ Возможности:
+                  </Text>
+                  <Text style={[styles.aboutSectionText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20 }]}>
+                    • Психологические тесты (депрессия, тревога, стресс){'\n'}
+                    • Дневник настроения с эмоциями{'\n'}
+                    • Мониторинг качества сна{'\n'}
+                    • Статистика и аналитика{'\n'}
+                    • Чат с психологом{'\n'}
+                    • Экстренная помощь{'\n'}
+                    • Тёмная тема
+                  </Text>
+                </View>
+
+                <View style={[styles.aboutSection, { width: '100%', marginBottom: 15 }]}>
+                  <Text style={[styles.aboutSectionTitle, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    👨‍💻 Разработчик:
+                  </Text>
+                  <Text style={[styles.aboutSectionText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20 }]}>
+                    • Разработано с ❤️ для заботы о психическом здоровье{'\n'}
+                    • Все данные хранятся локально{'\n'}
+                    • Полная конфиденциальность
+                  </Text>
+                </View>
+
+                <View style={[styles.aboutSection, { width: '100%', marginBottom: 15 }]}>
+                  <Text style={[styles.aboutSectionTitle, { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 }]}>
+                    📧 Контакты:
+                  </Text>
+                  <Text style={[styles.aboutSectionText, { color: theme.colors.textSecondary, fontSize: 14, lineHeight: 20 }]}>
+                    support@riskdetect.app{'\n'}
+                    www.riskdetect.app
+                  </Text>
+                </View>
+
+                <Text style={[styles.aboutCopyright, { color: theme.colors.lightGray, fontSize: 12, marginTop: 20 }]}>
+                  © 2026 RiskDetect. Все права защищены.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: theme.colors.primary }]}
+                onPress={() => setShowAboutModal(false)}
+              >
+                <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
+                  Закрыть
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Модальное окно выхода */}
       <Modal
