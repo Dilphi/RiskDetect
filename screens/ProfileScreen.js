@@ -10,12 +10,15 @@ import {
   Modal,
   TextInput,
   Linking,
-  Platform 
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import { useTheme } from '../components/ThemeContext';
 import { useNotifications } from '../components/NotificationContext';
@@ -27,6 +30,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
   
   // Состояния для модальных окон разделов
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -38,6 +42,9 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
     age: '',
     occupation: ''
   });
+  
+  // Состояние для аватара
+  const [avatar, setAvatar] = useState(null);
   
   // Состояния для статистики
   const [stats, setStats] = useState({
@@ -70,6 +77,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
   // Загружаем пользователя при монтировании
   useEffect(() => {
     loadUserData();
+    loadAvatar();
   }, []);
 
   // Загружаем статистику при каждом фокусе на экране
@@ -88,6 +96,18 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
       }
     } catch (error) {
       console.error('Error loading user:', error);
+    }
+  };
+
+  // Загружаем аватар
+  const loadAvatar = async () => {
+    try {
+      const savedAvatar = await AsyncStorage.getItem('userAvatar');
+      if (savedAvatar) {
+        setAvatar(savedAvatar);
+      }
+    } catch (error) {
+      console.error('Error loading avatar:', error);
     }
   };
 
@@ -121,6 +141,111 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
       });
     }
   }, [user]);
+
+  // Запрос разрешений для камеры и галереи
+  const requestPermissions = async () => {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status: galleryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (cameraStatus !== 'granted' || galleryStatus !== 'granted') {
+      Alert.alert(
+        'Разрешения',
+        'Для выбора фото необходимы разрешения на доступ к камере и галерее. Хотите открыть настройки?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          { text: 'Открыть настройки', onPress: () => Linking.openSettings() }
+        ]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Выбор фото из галереи
+  const pickImageFromGallery = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        processImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось выбрать изображение');
+    }
+  };
+
+  // Сделать фото с камеры
+  const takePhotoWithCamera = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        processImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось сделать фото');
+    }
+  };
+
+  // Обработка и сохранение изображения
+  const processImage = async (asset) => {
+    try {
+      // Оптимизируем изображение
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 300, height: 300 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+
+      // Сохраняем base64 строку
+      if (manipulatedImage.base64) {
+        const avatarBase64 = `data:image/jpeg;base64,${manipulatedImage.base64}`;
+        await AsyncStorage.setItem('userAvatar', avatarBase64);
+        setAvatar(avatarBase64);
+        setShowAvatarModal(false);
+        Alert.alert('Успешно', 'Фото профиля обновлено');
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось обработать изображение');
+    }
+  };
+
+  // Удалить аватар
+  const removeAvatar = async () => {
+    Alert.alert(
+      'Удалить фото',
+      'Вы уверены, что хотите удалить фото профиля?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userAvatar');
+            setAvatar(null);
+            setShowAvatarModal(false);
+          }
+        }
+      ]
+    );
+  };
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -183,7 +308,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      '🗑️ Удаление аккаунта',
+      'Удаление аккаунта',
       'Вы уверены? Это действие нельзя отменить. Все ваши данные будут безвозвратно удалены.',
       [
         { text: 'Отмена', style: 'cancel' },
@@ -205,6 +330,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
               await AsyncStorage.removeItem(`sleep_${user.id}`);
               await AsyncStorage.removeItem(`mood_${user.id}`);
               await AsyncStorage.removeItem(`journal_${user.id}`);
+              await AsyncStorage.removeItem('userAvatar');
               
               if (onLogout) {
                 await onLogout();
@@ -244,16 +370,26 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
         {/* Аватар и основная информация */}
         <View style={[styles.profileCard, { backgroundColor: theme.colors.card }]}>
-          <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-              <Text style={[styles.avatarText, { color: theme.colors.white }]}>
-                {user.name ? user.name.charAt(0).toUpperCase() : 'П'}
-              </Text>
-            </View>
-            <TouchableOpacity style={[styles.editAvatarButton, { backgroundColor: theme.colors.secondary }]}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={() => setShowAvatarModal(true)}
+          >
+            {avatar ? (
+              <Image 
+                source={{ uri: avatar }} 
+                style={[styles.avatar, { width: 100, height: 100, borderRadius: 50 }]}
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+                <Text style={[styles.avatarText, { color: theme.colors.white, fontSize: 40 }]}>
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'П'}
+                </Text>
+              </View>
+            )}
+            <View style={[styles.editAvatarButton, { backgroundColor: theme.colors.secondary }]}>
               <Ionicons name="camera" size={20} color={theme.colors.white} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
           
           <Text style={[styles.userName, { color: theme.colors.text }]}>{user.name || 'Пользователь'}</Text>
           <Text style={[styles.userEmail, { color: theme.colors.textSecondary }]}>{user.email}</Text>
@@ -404,9 +540,104 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
         </View>
       </ScrollView>
 
-      {/* МОДАЛЬНЫЕ ОКНА РАЗДЕЛОВ */}
+      {/* МОДАЛЬНОЕ ОКНО ВЫБОРА ФОТО */}
+      <Modal
+        visible={showAvatarModal}
+        transparent
+        animationType="slide"
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                <Ionicons name="camera" size={24} color={theme.colors.primary} /> Фото профиля
+              </Text>
+              <TouchableOpacity onPress={() => setShowAvatarModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.lightGray} />
+              </TouchableOpacity>
+            </View>
 
-      {/* Модальное окно Конфиденциальность */}
+            <View style={styles.modalBody}>
+              {/* Предпросмотр текущего фото */}
+              {avatar && (
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <Image 
+                    source={{ uri: avatar }} 
+                    style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 10 }}
+                  />
+                </View>
+              )}
+
+              {/* Кнопки выбора */}
+              <TouchableOpacity 
+                style={[styles.avatarOption, { 
+                  backgroundColor: theme.colors.background,
+                  padding: 15,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }]}
+                onPress={pickImageFromGallery}
+              >
+                <Ionicons name="images" size={24} color={theme.colors.primary} />
+                <Text style={[styles.avatarOptionText, { color: theme.colors.text, marginLeft: 15, fontSize: 16 }]}>
+                  Выбрать из галереи
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.avatarOption, { 
+                  backgroundColor: theme.colors.background,
+                  padding: 15,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }]}
+                onPress={takePhotoWithCamera}
+              >
+                <Ionicons name="camera" size={24} color={theme.colors.primary} />
+                <Text style={[styles.avatarOptionText, { color: theme.colors.text, marginLeft: 15, fontSize: 16 }]}>
+                  Сделать фото
+                </Text>
+              </TouchableOpacity>
+
+              {avatar && (
+                <TouchableOpacity 
+                  style={[styles.avatarOption, { 
+                    backgroundColor: theme.colors.background,
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center'
+                  }]}
+                  onPress={removeAvatar}
+                >
+                  <Ionicons name="trash" size={24} color={theme.colors.danger} />
+                  <Text style={[styles.avatarOptionText, { color: theme.colors.danger, marginLeft: 15, fontSize: 16 }]}>
+                    Удалить фото
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowAvatarModal(false)}
+              >
+                <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
+                  Отмена
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* МОДАЛЬНОЕ ОКНО КОНФИДЕНЦИАЛЬНОСТЬ */}
       <Modal
         visible={showPrivacyModal}
         transparent
@@ -486,7 +717,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
         </View>
       </Modal>
 
-      {/* Модальное окно Помощь и поддержка */}
+      {/* МОДАЛЬНОЕ ОКНО ПОМОЩЬ И ПОДДЕРЖКА */}
       <Modal
         visible={showHelpModal}
         transparent
@@ -591,7 +822,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
         </View>
       </Modal>
 
-      {/* Модальное окно О приложении */}
+      {/* МОДАЛЬНОЕ ОКНО О ПРИЛОЖЕНИИ */}
       <Modal
         visible={showAboutModal}
         transparent
