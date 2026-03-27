@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/DeviceManagerStyles';
 
@@ -26,6 +28,7 @@ export default function DeviceManagerScreen({ navigation, userData }) {
   const [showDeviceModal, setShowDeviceModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(userData); 
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Настройка навигационной панели
   useEffect(() => {
@@ -50,7 +53,6 @@ export default function DeviceManagerScreen({ navigation, userData }) {
     }
   }, [theme.dark]);
 
-  // Загрузка данных при монтировании
   useEffect(() => {
     if (userData?.id) {
       setCurrentUser(userData);
@@ -69,7 +71,7 @@ export default function DeviceManagerScreen({ navigation, userData }) {
         await loadDevices(user.id);
       } else {
         setLoading(false);
-        Alert.alert('Ошибка', 'Пользователь не авторизован');
+        Alert.alert(t('common.error'), t('devices.user_not_authorized'));
       }
     } catch (error) {
       console.error('Error loading user:', error);
@@ -83,14 +85,13 @@ export default function DeviceManagerScreen({ navigation, userData }) {
       setDevices(devicesData ? JSON.parse(devicesData) : []);
     } catch (error) {
       console.error('Error loading devices:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить устройства');
+      Alert.alert(t('common.error'), t('devices.load_error'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Исправлено: безопасная загрузка userId
   const onRefresh = async () => {
     setRefreshing(true);
     const userId = userData?.id || currentUser?.id;
@@ -98,25 +99,25 @@ export default function DeviceManagerScreen({ navigation, userData }) {
       await loadDevices(userId);
     } else {
       setRefreshing(false);
-      Alert.alert('Ошибка', 'Пользователь не идентифицирован');
+      Alert.alert(t('common.error'), t('devices.user_not_identified'));
     }
   };
 
   const syncDevice = async (device) => {
-    Alert.alert('Синхронизация', `Синхронизация с ${device.name}...`);
+    Alert.alert(t('devices.sync_title'), t('devices.sync_with') + ` ${device.name}...`);
     setTimeout(() => {
-      Alert.alert('Успешно', 'Данные синхронизированы');
+      Alert.alert(t('common.success'), t('devices.sync_success'));
     }, 2000);
   };
 
   const unpairDevice = (device) => {
     Alert.alert(
-      'Отвязать устройство',
-      `Вы уверены, что хотите отвязать ${device.name}?`,
+      t('devices.unpair_title'),
+      t('devices.unpair_confirm') + ` ${device.name}?`,
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Отвязать',
+          text: t('devices.unpair'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -126,9 +127,9 @@ export default function DeviceManagerScreen({ navigation, userData }) {
               const updatedDevices = devices.filter(d => d.id !== device.id);
               await AsyncStorage.setItem(`paired_devices_${userId}`, JSON.stringify(updatedDevices));
               setDevices(updatedDevices);
-              Alert.alert('Успешно', 'Устройство отвязано');
+              Alert.alert(t('common.success'), t('devices.unpair_success'));
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось отвязать устройство');
+              Alert.alert(t('common.error'), t('devices.unpair_error'));
             }
           }
         }
@@ -142,33 +143,34 @@ export default function DeviceManagerScreen({ navigation, userData }) {
     return 'hardware-chip';
   };
 
-  // Экран загрузки
   if (loading) {
     return (
       <ScreenWrapper>
         <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-            Загрузка устройств...
+            {t('devices.loading_devices')}
           </Text>
         </View>
       </ScreenWrapper>
     );
   }
 
-  // Основной экран
   return (
     <ScreenWrapper>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* Заголовок */}
+        {/* Заголовок с переключателем языка */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Мои устройства</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Scan')}>
-            <Ionicons name="add" size={24} color={theme.colors.primary} />
-          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t('devices.my_devices')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <LanguageSwitcher style={{ marginRight: 10 }} />
+            <TouchableOpacity onPress={() => navigation.navigate('Scan')}>
+              <Ionicons name="add" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -186,17 +188,17 @@ export default function DeviceManagerScreen({ navigation, userData }) {
             <View style={styles.emptyState}>
               <Ionicons name="watch" size={64} color={theme.colors.lightGray} />
               <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
-                Нет подключенных устройств
+                {t('devices.no_devices')}
               </Text>
               <Text style={[styles.emptyStateSubtitle, { color: theme.colors.textSecondary }]}>
-                Подключите браслет или часы RiskDetect для мониторинга здоровья
+                {t('devices.connect_device')}
               </Text>
               <TouchableOpacity 
                 style={[styles.addDeviceButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => navigation.navigate('Scan')}
               >
                 <Text style={[styles.addDeviceButtonText, { color: theme.colors.white }]}>
-                  Подключить устройство
+                  {t('devices.add_device')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -218,7 +220,7 @@ export default function DeviceManagerScreen({ navigation, userData }) {
                   <Text style={[styles.deviceId, { color: theme.colors.textSecondary }]}>{device.id}</Text>
                   <View style={styles.deviceStatus}>
                     <View style={[styles.statusDot, { backgroundColor: theme.colors.success }]} />
-                    <Text style={[styles.statusText, { color: theme.colors.success }]}>Подключено</Text>
+                    <Text style={[styles.statusText, { color: theme.colors.success }]}>{t('devices.connected')}</Text>
                   </View>
                 </View>
                 <View style={styles.deviceBattery}>
@@ -235,7 +237,7 @@ export default function DeviceManagerScreen({ navigation, userData }) {
             <View style={[styles.infoCard, { backgroundColor: theme.colors.info + '20' }]}>
               <Ionicons name="information-circle" size={20} color={theme.colors.info} />
               <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-                Вы можете подключить до 3 устройств одновременно
+                {t('devices.connect_limit')}
               </Text>
             </View>
           )}
@@ -251,7 +253,7 @@ export default function DeviceManagerScreen({ navigation, userData }) {
             <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                  Управление устройством
+                  {t('devices.device_management')}
                 </Text>
                 <TouchableOpacity onPress={() => setShowDeviceModal(false)}>
                   <Ionicons name="close" size={24} color={theme.colors.gray} />
@@ -282,27 +284,27 @@ export default function DeviceManagerScreen({ navigation, userData }) {
                         <Ionicons name="sync" size={24} color={theme.colors.info} />
                       </View>
                       <Text style={[styles.actionTitle, { color: theme.colors.text }]}>
-                        Синхронизировать
+                        {t('devices.sync')}
                       </Text>
                       <Text style={[styles.actionSubtitle, { color: theme.colors.textSecondary }]}>
-                        Обновить данные
+                        {t('devices.sync_data')}
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
                       style={styles.modalAction}
                       onPress={() => {
-                        Alert.alert('Информация', `Версия прошивки: ${selectedDevice.firmware || '1.0.0'}`);
+                        Alert.alert(t('devices.about_device'), `${t('devices.version')}: ${selectedDevice.firmware || '1.0.0'}`);
                       }}
                     >
                       <View style={[styles.actionIcon, { backgroundColor: theme.colors.purple + '20' }]}>
                         <Ionicons name="information-circle" size={24} color={theme.colors.purple} />
                       </View>
                       <Text style={[styles.actionTitle, { color: theme.colors.text }]}>
-                        О устройстве
+                        {t('devices.about_device')}
                       </Text>
                       <Text style={[styles.actionSubtitle, { color: theme.colors.textSecondary }]}>
-                        Версия, серийный номер
+                        {t('devices.version_serial')}
                       </Text>
                     </TouchableOpacity>
 
@@ -317,10 +319,10 @@ export default function DeviceManagerScreen({ navigation, userData }) {
                         <Ionicons name="trash" size={24} color={theme.colors.error} />
                       </View>
                       <Text style={[styles.actionTitle, { color: theme.colors.error }]}>
-                        Отвязать
+                        {t('devices.unpair')}
                       </Text>
                       <Text style={[styles.actionSubtitle, { color: theme.colors.textSecondary }]}>
-                        Удалить из списка
+                        {t('devices.remove_from_list')}
                       </Text>
                     </TouchableOpacity>
                   </View>

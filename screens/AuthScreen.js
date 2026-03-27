@@ -15,8 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation'; 
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/AuthStyles';
+
 
 export default function AuthScreen({ navigation, setIsAuthenticated, setUserData }) {
   const [email, setEmail] = useState('');
@@ -25,15 +28,13 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (Platform.OS === 'android') {
       const configureNavigationBar = async () => {
         try {
-          // Скрываем навигационную панель
           await NavigationBar.setVisibilityAsync('hidden');
-          
-          // Настраиваем цвет кнопок в зависимости от темы
           await NavigationBar.setButtonStyleAsync(
             theme.dark ? 'light' : 'dark'
           );
@@ -44,17 +45,16 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
 
       configureNavigationBar();
 
-    
       return () => {
         NavigationBar.setVisibilityAsync('visible');
         NavigationBar.setButtonStyleAsync('dark');
       };
     }
-  }, [theme.dark]); 
+  }, [theme.dark]);
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      Alert.alert(t('common.error'), t('auth.fill_all_fields'));
       return;
     }
 
@@ -77,11 +77,11 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
           setUserData(user);
           setIsAuthenticated(true);
         } else {
-          Alert.alert('Ошибка', 'Неверный email или пароль');
+          Alert.alert(t('common.error'), t('auth.invalid_credentials'));
         }
       }
     } catch (error) {
-      Alert.alert('Ошибка', 'Произошла ошибка при входе');
+      Alert.alert(t('common.error'), t('auth.login_error'));
     } finally {
       setLoading(false);
     }
@@ -100,12 +100,17 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Переключатель языка */}
+          <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 16 }}>
+            <LanguageSwitcher />
+          </View>
+
           <View style={styles.header}>
             <Text style={[styles.logo, { color: theme.colors.primary }]}>
-              RiskDetect
+              {t('common.app_name')}
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              Система мониторинга психологического состояния
+              {t('auth.welcome')}
             </Text>
           </View>
 
@@ -120,7 +125,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
               <Ionicons name="mail-outline" size={20} color={theme.colors.gray} />
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 placeholderTextColor={theme.colors.lightGray}
                 value={email}
                 onChangeText={setEmail}
@@ -139,7 +144,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
               <Ionicons name="lock-closed-outline" size={20} color={theme.colors.gray} />
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
-                placeholder="Пароль"
+                placeholder={t('auth.password')}
                 placeholderTextColor={theme.colors.lightGray}
                 secureTextEntry={!showPassword}
                 value={password}
@@ -167,7 +172,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
                 <ActivityIndicator color={theme.colors.white} />
               ) : (
                 <Text style={[styles.authButtonText, { color: theme.colors.white }]}>
-                  Войти
+                  {t('auth.login')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -178,7 +183,7 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
             onPress={() => navigation.navigate('Register')}
           >
             <Text style={[styles.switchAuthText, { color: theme.colors.secondary }]}>
-              Нет аккаунта? Зарегистрироваться
+              {t('auth.no_account')}
             </Text>
           </TouchableOpacity>
 
@@ -187,15 +192,15 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
             { borderTopColor: theme.colors.border }
           ]}>
             <Text style={[styles.infoTitle, { color: theme.colors.text }]}>
-              О приложении
+              {t('common.app_name')}
             </Text>
             <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-              RiskDetect помогает отслеживать психологическое состояние, 
-              вести дневник настроения, проходить тесты и получать 
-              рекомендации от психологов.
+              {t('home.quote')}
             </Text>
           </View>
         </ScrollView>
+       
+
       </KeyboardAvoidingView>
     </ScreenWrapper>
   );

@@ -12,12 +12,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/PsychologistStyles';
 
 export default function PsychologistScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('chat');
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Настройка навигационной панели
   useEffect(() => {
@@ -41,10 +44,10 @@ export default function PsychologistScreen({ navigation }) {
     {
       id: 1,
       name: 'Иванова Мария Петровна',
-      specialty: 'Клинический психолог',
-      experience: '15 лет',
+      specialty: t('psychologist.clinical_psychologist'),
+      experience: '15 ' + t('psychologist.years'),
       education: 'МГУ, факультет психологии',
-      price: 'Бесплатно',
+      price: t('psychologist.free'),
       rating: 4.9,
       reviews: 128,
       available: true,
@@ -53,10 +56,10 @@ export default function PsychologistScreen({ navigation }) {
     {
       id: 2,
       name: 'Петров Алексей Игоревич',
-      specialty: 'Детский и подростковый психолог',
-      experience: '10 лет',
+      specialty: t('psychologist.child_psychologist'),
+      experience: '10 ' + t('psychologist.years'),
       education: 'СПбГУ, психология развития',
-      price: 'Бесплатно',
+      price: t('psychologist.free'),
       rating: 4.8,
       reviews: 94,
       available: true,
@@ -65,10 +68,10 @@ export default function PsychologistScreen({ navigation }) {
     {
       id: 3,
       name: 'Соколова Анна Викторовна',
-      specialty: 'Семейный психолог',
-      experience: '20 лет',
+      specialty: t('psychologist.family_psychologist'),
+      experience: '20 ' + t('psychologist.years'),
       education: 'РГГУ, психологическое консультирование',
-      price: 'Бесплатно',
+      price: t('psychologist.free'),
       rating: 4.9,
       reviews: 156,
       available: false,
@@ -79,25 +82,25 @@ export default function PsychologistScreen({ navigation }) {
   const emergencyContacts = [
     {
       id: 1,
-      title: 'Телефон доверия',
+      title: t('psychologist.helpline'),
       number: '8-800-2000-122',
-      description: 'Круглосуточная психологическая помощь',
+      description: t('psychologist.helpline_desc'),
       icon: 'call',
       color: theme.colors.error
     },
     {
       id: 2,
-      title: 'МЧС Казахстана',
+      title: t('psychologist.emergency_ministry'),
       number: '112',
-      description: 'Экстренная помощь',
+      description: t('psychologist.emergency_desc'),
       icon: 'warning',
       color: theme.colors.warning
     },
     {
       id: 3,
-      title: 'Линия помощи "Твоя территория"',
+      title: t('psychologist.youth_line'),
       number: '8-800-2000-122',
-      description: 'Помощь подросткам и молодежи',
+      description: t('psychologist.youth_desc'),
       icon: 'people',
       color: theme.colors.info
     }
@@ -105,12 +108,12 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleCall = (number) => {
     Alert.alert(
-      '📞 Звонок',
-      `Позвонить по номеру ${number}?`,
+      '📞 ' + t('psychologist.call'),
+      t('psychologist.call_to', { number }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Позвонить', 
+          text: t('psychologist.call'), 
           onPress: () => Linking.openURL(`tel:${number}`) 
         }
       ]
@@ -119,13 +122,13 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleChat = (psychologist) => {
     Alert.alert(
-      '💬 Чат с психологом',
-      `Начать чат с ${psychologist.name}?`,
+      t('psychologist.chat'),
+      t('psychologist.chat_with', { name: psychologist.name }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Начать чат', 
-          onPress: () => Alert.alert('Чат', 'Функция чата будет доступна в следующем обновлении')
+          text: t('psychologist.start_chat'), 
+          onPress: () => Alert.alert(t('psychologist.chat'), t('psychologist.chat_not_available'))
         }
       ]
     );
@@ -133,13 +136,13 @@ export default function PsychologistScreen({ navigation }) {
 
   const handleBookSession = (psychologist) => {
     Alert.alert(
-      'Запись на консультацию',
-      `Записаться к ${psychologist.name}?`,
+      t('psychologist.booking_title'),
+      t('psychologist.book_with', { name: psychologist.name }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Записаться', 
-          onPress: () => Alert.alert('Запись', 'Функция записи будет доступна в следующем обновлении')
+          text: t('psychologist.book'), 
+          onPress: () => Alert.alert(t('psychologist.booking_title'), t('psychologist.booking_not_available'))
         }
       ]
     );
@@ -152,17 +155,22 @@ export default function PsychologistScreen({ navigation }) {
         contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.colors.background }]}
       >
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          {/* Переключатель языка */}
+          <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8 }}>
+            <LanguageSwitcher />
+          </View>
+
           {/* Заголовок */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>🧠 Психологическая помощь</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>🧠 {t('psychologist.title')}</Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              Профессиональная поддержка 24/7
+              {t('psychologist.subtitle')}
             </Text>
           </View>
 
           {/* Экстренная помощь */}
           <View style={styles.emergencySection}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>🚨 Экстренная помощь</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('psychologist.emergency_section')}</Text>
             {emergencyContacts.map((contact) => (
               <TouchableOpacity
                 key={contact.id}
@@ -196,7 +204,7 @@ export default function PsychologistScreen({ navigation }) {
                 styles.tabText, 
                 { color: activeTab === 'chat' ? theme.colors.white : theme.colors.textSecondary }
               ]}>
-                💬 Чат с психологом
+                {t('psychologist.chat_section')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -208,7 +216,7 @@ export default function PsychologistScreen({ navigation }) {
                 styles.tabText, 
                 { color: activeTab === 'psychologists' ? theme.colors.white : theme.colors.textSecondary }
               ]}>
-                👥 Специалисты
+                {t('psychologist.specialists_section')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -219,23 +227,23 @@ export default function PsychologistScreen({ navigation }) {
               <View style={[styles.chatPlaceholder, { backgroundColor: theme.colors.card }]}>
                 <Ionicons name="chatbubbles-outline" size={64} color={theme.colors.lightGray} />
                 <Text style={[styles.chatPlaceholderTitle, { color: theme.colors.text }]}>
-                  💬 Чат с психологом
+                  {t('psychologist.chat_placeholder_title')}
                 </Text>
                 <Text style={[styles.chatPlaceholderText, { color: theme.colors.textSecondary }]}>
-                  Задайте вопрос нашему психологу. Мы ответим вам в ближайшее время.
+                  {t('psychologist.chat_placeholder_text')}
                 </Text>
                 <TouchableOpacity 
                   style={[styles.startChatButton, { backgroundColor: theme.colors.primary }]}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.startChatButtonText, { color: theme.colors.white }]}>Начать чат</Text>
+                  <Text style={[styles.startChatButtonText, { color: theme.colors.white }]}>{t('psychologist.start_chat')}</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={[styles.infoCard, { backgroundColor: theme.colors.info + '20' }]}>
                 <Ionicons name="information-circle" size={24} color={theme.colors.info} />
                 <Text style={[styles.infoCardText, { color: theme.colors.text }]}>
-                  🔒 Чат анонимный. Все сообщения защищены и не передаются третьим лицам.
+                  {t('psychologist.chat_anonymous')}
                 </Text>
               </View>
             </View>
@@ -276,7 +284,7 @@ export default function PsychologistScreen({ navigation }) {
                         styles.statusText,
                         { color: psychologist.available ? theme.colors.success : theme.colors.error }
                       ]}>
-                        {psychologist.available ? '✅ Доступен' : '⏰ Занят'}
+                        {psychologist.available ? t('psychologist.available') : t('psychologist.busy')}
                       </Text>
                     </View>
                   </View>
@@ -292,7 +300,7 @@ export default function PsychologistScreen({ navigation }) {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="chatbubble-outline" size={20} color={theme.colors.info} />
-                      <Text style={[styles.chatButtonText, { color: theme.colors.info }]}>💬 Чат</Text>
+                      <Text style={[styles.chatButtonText, { color: theme.colors.info }]}>💬 {t('psychologist.chat')}</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
@@ -301,7 +309,7 @@ export default function PsychologistScreen({ navigation }) {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
-                      <Text style={[styles.bookButtonText, { color: theme.colors.primary }]}>📅 Записаться</Text>
+                      <Text style={[styles.bookButtonText, { color: theme.colors.primary }]}>📅 {t('psychologist.book')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -310,11 +318,10 @@ export default function PsychologistScreen({ navigation }) {
               <View style={[styles.consultationInfo, { backgroundColor: theme.colors.card }]}>
                 <Ionicons name="heart" size={24} color={theme.colors.error} />
                 <Text style={[styles.consultationInfoTitle, { color: theme.colors.text }]}>
-                  ❤️ Консультации бесплатны
+                  {t('psychologist.consultations_free')}
                 </Text>
                 <Text style={[styles.consultationInfoText, { color: theme.colors.textSecondary }]}>
-                  Все консультации с психологами в нашем приложении проводятся бесплатно.
-                  Мы заботимся о вашем психическом здоровье.
+                  {t('psychologist.consultations_free_text')}
                 </Text>
               </View>
             </View>
@@ -322,30 +329,30 @@ export default function PsychologistScreen({ navigation }) {
 
           {/* Советы по психологической поддержке */}
           <View style={[styles.tipsCard, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.tipsTitle, { color: theme.colors.text }]}>🧘 Как справиться со стрессом</Text>
+            <Text style={[styles.tipsTitle, { color: theme.colors.text }]}>{t('psychologist.stress_tips')}</Text>
             
             <View style={styles.tipItem}>
               <Ionicons name="leaf" size={20} color={theme.colors.primary} />
               <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>
-                🌿 Дышите глубоко: 4 сек вдох, 4 задержка, 4 выдох
+                {t('psychologist.tip1')}
               </Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="walk" size={20} color={theme.colors.primary} />
               <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>
-                🚶 Сделайте короткую прогулку на свежем воздухе
+                {t('psychologist.tip2')}
               </Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="water" size={20} color={theme.colors.primary} />
               <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>
-                💧 Выпейте стакан воды - это поможет успокоиться
+                {t('psychologist.tip3')}
               </Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="people" size={20} color={theme.colors.primary} />
               <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>
-                🗣️ Поговорите с близким человеком о своих чувствах
+                {t('psychologist.tip4')}
               </Text>
             </View>
           </View>

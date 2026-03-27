@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/HomeStyles';
 
@@ -27,6 +29,7 @@ export default function HomeScreen({ navigation, userData }) {
     moodScore: 0
   });
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Настройка навигационной панели
   useEffect(() => {
@@ -43,16 +46,15 @@ export default function HomeScreen({ navigation, userData }) {
       };
 
       configureNavigationBar();
-
     }
   }, [theme.dark]);
 
   const moodOptions = [
-    { id: 1, emoji: '😊', label: 'Отлично', value: 5, color: theme.colors.success },
-    { id: 2, emoji: '🙂', label: 'Хорошо', value: 4, color: theme.colors.success },
-    { id: 3, emoji: '😐', label: 'Нормально', value: 3, color: theme.colors.warning },
-    { id: 4, emoji: '😔', label: 'Плохо', value: 2, color: theme.colors.warning },
-    { id: 5, emoji: '😢', label: 'Очень плохо', value: 1, color: theme.colors.error },
+    { id: 1, emoji: '😊', label: t('home.excellent'), value: 5, color: theme.colors.success },
+    { id: 2, emoji: '🙂', label: t('home.good'), value: 4, color: theme.colors.success },
+    { id: 3, emoji: '😐', label: t('home.normal'), value: 3, color: theme.colors.warning },
+    { id: 4, emoji: '😔', label: t('home.bad'), value: 2, color: theme.colors.warning },
+    { id: 5, emoji: '😢', label: t('home.very_bad'), value: 1, color: theme.colors.error },
   ];
 
   useEffect(() => {
@@ -130,7 +132,6 @@ export default function HomeScreen({ navigation, userData }) {
       const moodJson = await AsyncStorage.getItem(`mood_${user?.id}`);
       let moodEntries = moodJson ? JSON.parse(moodJson) : [];
       
-      // Удаляем запись за сегодня, если она есть
       const today = new Date().toDateString();
       moodEntries = moodEntries.filter(entry => 
         new Date(entry.date).toDateString() !== today
@@ -139,30 +140,39 @@ export default function HomeScreen({ navigation, userData }) {
       moodEntries.push(moodData);
       await AsyncStorage.setItem(`mood_${user?.id}`, JSON.stringify(moodEntries));
       
-      Alert.alert('Настроение сохранено', `Вы отметили: ${mood.emoji} ${mood.label}`);
+      Alert.alert(t('home.mood_saved'), t('home.mood_marked') + `: ${mood.emoji} ${mood.label}`);
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось сохранить настроение');
+      Alert.alert(t('common.error'), t('home.mood_save_error'));
     }
   };
 
   const handleEmergency = () => {
     Alert.alert(
-      'Экстренная помощь',
-      'Телефон доверия: 8-800-2000-122\n\nПомощь психолога доступна 24/7',
+      t('home.emergency_help'),
+      t('home.helpline'),
       [
-        { text: 'Позвонить', onPress: () => console.log('Emergency call') },
-        { text: 'Чат с психологом', onPress: () => navigation.navigate('Psychologist') },
-        { text: 'Отмена', style: 'cancel' }
+        { text: t('home.call'), onPress: () => console.log('Emergency call') },
+        { text: t('psychologist.chat'), onPress: () => navigation.navigate('Psychologist') },
+        { text: t('common.cancel'), style: 'cancel' }
       ]
     );
   };
 
   const getRiskColor = (level) => {
     switch (level?.toLowerCase()) {
-      case 'низкий': return theme.colors.success;
-      case 'умеренный': return theme.colors.warning;
-      case 'высокий': return theme.colors.error;
+      case t('home.low_risk'): return theme.colors.success;
+      case t('home.moderate_risk'): return theme.colors.warning;
+      case t('home.high_risk'): return theme.colors.error;
       default: return theme.colors.lightGray;
+    }
+  };
+
+  const getRiskDescription = (level) => {
+    switch (level?.toLowerCase()) {
+      case t('home.low_risk'): return t('home.risk_description_low');
+      case t('home.moderate_risk'): return t('home.risk_description_moderate');
+      case t('home.high_risk'): return t('home.risk_description_high');
+      default: return t('home.risk_description_low');
     }
   };
 
@@ -180,11 +190,16 @@ export default function HomeScreen({ navigation, userData }) {
           />
         }
       >
+        {/* Переключатель языка */}
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8 }}>
+          <LanguageSwitcher />
+        </View>
+
         {/* Приветствие */}
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: theme.colors.text }]}>
-              Привет, {user?.name?.split(' ')[0] || 'Пользователь'}!
+              {t('home.hello')}, {user?.name?.split(' ')[0] || t('home.user')}!
             </Text>
             <Text style={[styles.date, { color: theme.colors.textSecondary }]}>
               {new Date().toLocaleDateString('ru-RU', { 
@@ -211,21 +226,19 @@ export default function HomeScreen({ navigation, userData }) {
           onPress={() => navigation.navigate('Statistics')}
         >
           <View style={styles.riskHeader}>
-            <Text style={[styles.riskTitle, { color: theme.colors.text }]}>Уровень риска</Text>
+            <Text style={[styles.riskTitle, { color: theme.colors.text }]}>{t('home.risk_level')}</Text>
             <View style={[styles.riskBadge, { backgroundColor: getRiskColor(user?.riskLevel) }]}>
               <Text style={[styles.riskBadgeText, { color: theme.colors.white }]}>
-                {user?.riskLevel || 'низкий'}
+                {user?.riskLevel || t('home.low_risk')}
               </Text>
             </View>
           </View>
           <Text style={[styles.riskDescription, { color: theme.colors.textSecondary }]}>
-            {user?.riskLevel === 'низкий' ? 'Ваше состояние стабильно. Продолжайте следить за собой.' :
-             user?.riskLevel === 'умеренный' ? 'Рекомендуется обратить внимание на свое состояние.' :
-             'Рекомендуется немедленно обратиться к психологу.'}
+            {getRiskDescription(user?.riskLevel)}
           </Text>
           <View style={styles.riskFooter}>
             <Text style={[styles.riskLink, { color: theme.colors.primary }]}>
-              Подробная статистика →
+              {t('home.detailed_stats')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -233,10 +246,10 @@ export default function HomeScreen({ navigation, userData }) {
         {/* Настроение */}
         <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
-            Как вы себя чувствуете?
+            {t('home.how_feeling')}
           </Text>
           <Text style={[styles.cardSubtitle, { color: theme.colors.textSecondary }]}>
-            Выберите ваше настроение сегодня
+            {t('home.select_mood')}
           </Text>
           
           <View style={styles.moodContainer}>
@@ -271,20 +284,20 @@ export default function HomeScreen({ navigation, userData }) {
               {stats.testsCompleted}
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-              Тестов пройдено
+              {t('home.tests_completed')}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.statCard, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate('Сон')}
+            onPress={() => navigation.navigate(t('sleep.title'))}
           >
             <Ionicons name="moon" size={28} color={theme.colors.purple} />
             <Text style={[styles.statNumber, { color: theme.colors.text }]}>
               {stats.avgSleepHours} ч
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-              Сон в среднем
+              {t('home.avg_sleep')}
             </Text>
           </TouchableOpacity>
           
@@ -297,24 +310,24 @@ export default function HomeScreen({ navigation, userData }) {
               {stats.moodScore}
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-              Настроение
+              {t('home.mood')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Быстрые действия */}
         <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Быстрые действия</Text>
+          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{t('home.quick_actions')}</Text>
           
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity 
               style={styles.quickAction}
-              onPress={() => navigation.navigate('Тесты')}
+              onPress={() => navigation.navigate(t('tests.title'))}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
                 <Ionicons name="help-circle" size={24} color={theme.colors.primary} />
               </View>
-              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Пройти тест</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>{t('home.take_test')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -324,7 +337,7 @@ export default function HomeScreen({ navigation, userData }) {
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.info + '20' }]}>
                 <Ionicons name="book" size={24} color={theme.colors.info} />
               </View>
-              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Дневник</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>{t('home.journal')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -334,7 +347,7 @@ export default function HomeScreen({ navigation, userData }) {
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.purple + '20' }]}>
                 <Ionicons name="people" size={24} color={theme.colors.purple} />
               </View>
-              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Психолог</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>{t('home.psychologist')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -344,7 +357,7 @@ export default function HomeScreen({ navigation, userData }) {
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.orange + '20' }]}>
                 <Ionicons name="qr-code" size={24} color={theme.colors.orange} />
               </View>
-              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>Сканер</Text>
+              <Text style={[styles.quickActionText, { color: theme.colors.text }]}>{t('home.scanner')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -354,21 +367,21 @@ export default function HomeScreen({ navigation, userData }) {
           <View style={styles.recommendationHeader}>
             <Ionicons name="bulb" size={24} color={theme.colors.warning} />
             <Text style={[styles.recommendationTitle, { color: theme.colors.text }]}>
-              Рекомендация дня
+              {t('home.daily_recommendation')}
             </Text>
           </View>
           <Text style={[styles.recommendationText, { color: theme.colors.textSecondary }]}>
-            Сделайте 5 глубоких вдохов. Это поможет снизить уровень стресса и улучшить концентрацию.
+            {t('home.recommendation_text')}
           </Text>
         </View>
 
         {/* Мотивация */}
         <View style={[styles.quoteCard, { backgroundColor: theme.colors.info + '20' }]}>
           <Text style={[styles.quoteText, { color: theme.colors.text }]}>
-            "Забота о себе — это не эгоизм, а необходимость."
+            "{t('home.quote')}"
           </Text>
           <Text style={[styles.quoteAuthor, { color: theme.colors.textSecondary }]}>
-            — RiskDetect
+            — {t('common.app_name')}
           </Text>
         </View>
       </ScrollView>

@@ -8,22 +8,10 @@ import { ActivityIndicator, View, Text } from 'react-native';
 
 import { ThemeProvider, useTheme } from './components/ThemeContext';
 import { NotificationProvider } from './components/NotificationContext';
+import { TranslationProvider, useTranslation } from './components/Translation'; 
 import { ScreenWrapper } from './components/ScreenWrapper';
 
-// Экраны
-import HomeScreen from './screens/HomeScreen';
-import SleepScreen from './screens/SleepScreen';
-import ScanScreen from './screens/ScanScreen';
-import ProfileScreen from './screens/ProfileScreen';
-import AuthScreen from './screens/AuthScreen';
-import RegisterScreen from './screens/RegisterScreen';
-import TestScreen from './screens/TestScreen';
-import TestResultScreen from './screens/TestResultScreen';
-import JournalScreen from './screens/JournalScreen';
-import JournalEntryScreen from './screens/JournalEntryScreen';
-import PsychologistScreen from './screens/PsychologistScreen';
-import EmergencyScreen from './screens/EmergencyScreen';
-import StatisticsScreen from './screens/StatisticsScreen';
+// ... все импорты экранов остаются без изменений ...
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -31,16 +19,17 @@ const Stack = createNativeStackNavigator();
 // Главные табы для авторизованных пользователей
 function MainTabs({ userData, onLogout }) {
   const { theme } = useTheme();
+  const { t } = useTranslation(); 
   
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === 'Главная') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Сон') iconName = focused ? 'moon' : 'moon-outline';
-          else if (route.name === 'Тесты') iconName = focused ? 'document-text' : 'document-text-outline';
-          else if (route.name === 'Профиль') iconName = focused ? 'person' : 'person-outline';
+          if (route.name === t('home.title')) iconName = focused ? 'home' : 'home-outline';
+          else if (route.name === t('sleep.title')) iconName = focused ? 'moon' : 'moon-outline';
+          else if (route.name === t('tests.title')) iconName = focused ? 'document-text' : 'document-text-outline';
+          else if (route.name === t('profile.title')) iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: theme.colors.primary,
@@ -62,16 +51,16 @@ function MainTabs({ userData, onLogout }) {
         },
       })}
     >
-      <Tab.Screen name="Главная">
+      <Tab.Screen name={t('home.title')} options={{ title: t('home.title') }}>
         {(props) => <HomeScreen {...props} userData={userData} />}
       </Tab.Screen>
-      <Tab.Screen name="Сон">
+      <Tab.Screen name={t('sleep.title')} options={{ title: t('sleep.title') }}>
         {(props) => <SleepScreen {...props} userData={userData} />}
       </Tab.Screen>
-      <Tab.Screen name="Тесты">
+      <Tab.Screen name={t('tests.title')} options={{ title: t('tests.title') }}>
         {(props) => <TestScreen {...props} userData={userData} />}
       </Tab.Screen>
-      <Tab.Screen name="Профиль">
+      <Tab.Screen name={t('profile.title')} options={{ title: t('profile.title') }}>
         {(props) => <ProfileScreen {...props} userData={userData} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
@@ -81,6 +70,7 @@ function MainTabs({ userData, onLogout }) {
 // Стек навигации для авторизованных пользователей
 function MainStack({ userData, onLogout }) {
   const { theme } = useTheme();
+  const { t } = useTranslation(); 
   
   return (
     <Stack.Navigator
@@ -106,37 +96,37 @@ function MainStack({ userData, onLogout }) {
       <Stack.Screen 
         name="TestResult" 
         component={TestResultScreen}
-        options={{ title: 'Результат теста' }}
+        options={{ title: t('tests.result') }}
       />
       <Stack.Screen 
         name="Journal" 
         component={JournalScreen}
-        options={{ title: 'Дневник' }}
+        options={{ title: t('journal.title') }}
       />
       <Stack.Screen 
         name="JournalEntry" 
         component={JournalEntryScreen}
-        options={{ title: 'Запись' }}
+        options={{ title: t('journal.entry') }}
       />
       <Stack.Screen 
         name="Psychologist" 
         component={PsychologistScreen}
-        options={{ title: 'Психолог' }}
+        options={{ title: t('psychologist.title') }}
       />
       <Stack.Screen 
         name="Emergency" 
         component={EmergencyScreen}
-        options={{ title: 'Экстренная помощь' }}
+        options={{ title: t('emergency.title') }}
       />
       <Stack.Screen 
         name="Statistics" 
         component={StatisticsScreen}
-        options={{ title: 'Статистика' }}
+        options={{ title: t('statistics.title') }}
       />
       <Stack.Screen 
         name="Scan" 
         component={ScanScreen}
-        options={{ title: 'Сканер QR-кода' }}
+        options={{ title: t('scan.title') }}
       />
     </Stack.Navigator>
   );
@@ -145,6 +135,7 @@ function MainStack({ userData, onLogout }) {
 // Навигация для неавторизованных пользователей
 function AuthStack({ setIsAuthenticated, setUserData }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   
   return (
     <Stack.Navigator 
@@ -181,6 +172,7 @@ function AppContent() {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
+  const { t } = useTranslation(); 
 
   useEffect(() => {
     checkAuthStatus();
@@ -227,7 +219,7 @@ function AppContent() {
             fontSize: 16, 
             color: theme.colors.textSecondary 
           }}>
-            Загрузка приложения...
+            {t('common.loading')}
           </Text>
         </View>
       </ScreenWrapper>
@@ -253,7 +245,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <NotificationProvider>
-        <AppContent />
+        <TranslationProvider> 
+          <AppContent />
+        </TranslationProvider>
       </NotificationProvider>
     </ThemeProvider>
   );

@@ -12,9 +12,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import * as NavigationBar from 'expo-navigation-bar'; 
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/RegisterStyles';
 
@@ -34,6 +36,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Настройка навигационной панели
   useEffect(() => {
@@ -62,31 +65,31 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Введите имя';
+      newErrors.name = t('auth.enter_name');
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Введите email';
+      newErrors.email = t('auth.enter_email');
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Некорректный email';
+      newErrors.email = t('auth.invalid_email');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Введите пароль';
+      newErrors.password = t('auth.enter_password');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Пароль должен быть не менее 6 символов';
+      newErrors.password = t('auth.password_length');
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Подтвердите пароль';
+      newErrors.confirmPassword = t('auth.confirm_password_placeholder');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Пароли не совпадают';
+      newErrors.confirmPassword = t('auth.passwords_not_match');
     }
 
     if (formData.age && formData.age.trim()) {
       const ageNum = parseInt(formData.age);
       if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-        newErrors.age = 'Введите корректный возраст';
+        newErrors.age = t('auth.enter_valid_age');
       }
     }
 
@@ -110,7 +113,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
       );
       
       if (userExists) {
-        Alert.alert('Ошибка', 'Пользователь с таким email уже зарегистрирован');
+        Alert.alert(t('common.error'), t('auth.user_exists'));
         setLoading(false);
         return;
       }
@@ -120,7 +123,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
         ...formData,
         age: formData.age ? parseInt(formData.age) : null,
         registrationDate: new Date().toISOString(),
-        riskLevel: 'низкий',
+        riskLevel: t('home.low_risk'),
         riskPoints: 0,
         tests: [],
         sleepData: [],
@@ -139,7 +142,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
       setIsAuthenticated(true);
       
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось завершить регистрацию');
+      Alert.alert(t('common.error'), t('auth.registration_failed'));
     } finally {
       setLoading(false);
     }
@@ -155,6 +158,11 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
           contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.colors.background }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Переключатель языка */}
+          <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 16 }}>
+            <LanguageSwitcher />
+          </View>
+
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -163,15 +171,15 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>Регистрация</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{t('auth.register')}</Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              Создайте аккаунт для доступа ко всем функциям
+              {t('auth.register_subtitle')}
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Имя и фамилия *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.name')} *</Text>
               <View style={[
                 styles.inputContainer, 
                 errors.name && styles.inputError,
@@ -183,7 +191,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                 <Ionicons name="person-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Введите имя и фамилию"
+                  placeholder={t('auth.name_placeholder')}
                   placeholderTextColor={theme.colors.lightGray}
                   value={formData.name}
                   onChangeText={(text) => {
@@ -197,7 +205,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Email *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.email')} *</Text>
               <View style={[
                 styles.inputContainer, 
                 errors.email && styles.inputError,
@@ -224,7 +232,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Пароль *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.password')} *</Text>
               <View style={[
                 styles.inputContainer, 
                 errors.password && styles.inputError,
@@ -236,7 +244,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                 <Ionicons name="lock-closed-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Не менее 6 символов"
+                  placeholder={t('auth.password_placeholder')}
                   placeholderTextColor={theme.colors.lightGray}
                   secureTextEntry={!showPassword}
                   value={formData.password}
@@ -257,7 +265,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Подтверждение пароля *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.confirm_password')} *</Text>
               <View style={[
                 styles.inputContainer, 
                 errors.confirmPassword && styles.inputError,
@@ -269,7 +277,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                 <Ionicons name="lock-closed-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Повторите пароль"
+                  placeholder={t('auth.confirm_password_placeholder')}
                   placeholderTextColor={theme.colors.lightGray}
                   secureTextEntry={!showConfirmPassword}
                   value={formData.confirmPassword}
@@ -290,7 +298,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Возраст</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.age')}</Text>
               <View style={[
                 styles.inputContainer, 
                 errors.age && styles.inputError,
@@ -302,7 +310,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                 <Ionicons name="calendar-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Необязательно"
+                  placeholder={t('auth.age_placeholder')}
                   placeholderTextColor={theme.colors.lightGray}
                   value={formData.age}
                   onChangeText={(text) => {
@@ -317,9 +325,9 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Пол</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.gender')}</Text>
               <View style={styles.genderContainer}>
-                {['Мужской', 'Женский', 'Другой'].map((gender) => (
+                {[t('auth.male'), t('auth.female'), t('auth.other')].map((gender) => (
                   <TouchableOpacity
                     key={gender}
                     style={[
@@ -344,7 +352,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Род деятельности</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>{t('auth.occupation')}</Text>
               <View style={[styles.inputContainer, { 
                 backgroundColor: theme.colors.background,
                 borderColor: theme.colors.border 
@@ -352,7 +360,7 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
                 <Ionicons name="briefcase-outline" size={20} color={theme.colors.lightGray} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Например: студент, учитель, врач"
+                  placeholder={t('auth.occupation_placeholder')}
                   placeholderTextColor={theme.colors.lightGray}
                   value={formData.occupation}
                   onChangeText={(text) => setFormData({...formData, occupation: text})}
@@ -372,15 +380,15 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
               {loading ? (
                 <ActivityIndicator color={theme.colors.white} />
               ) : (
-                <Text style={[styles.registerButtonText, { color: theme.colors.white }]}>Зарегистрироваться</Text>
+                <Text style={[styles.registerButtonText, { color: theme.colors.white }]}>{t('auth.register')}</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.loginLink}>
-            <Text style={[styles.loginLinkText, { color: theme.colors.textSecondary }]}>Уже есть аккаунт? </Text>
+            <Text style={[styles.loginLinkText, { color: theme.colors.textSecondary }]}>{t('auth.have_account')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
-              <Text style={[styles.loginLinkButton, { color: theme.colors.primary }]}>Войти</Text>
+              <Text style={[styles.loginLinkButton, { color: theme.colors.primary }]}>{t('auth.login')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

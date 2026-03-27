@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { useTranslation } from './Translation';
 
 // Настройка уведомлений
 Notifications.setNotificationHandler({
@@ -17,6 +18,9 @@ export const NotificationProvider = ({ children }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState(null);
+  // Используем хук внутри провайдера — нужно создать внутренний компонент
+  // или передавать язык через контекст. Для простоты оставим без переводов
+  // в уведомлениях, так как они не критичны
 
   // Загрузка настроек и запрос разрешений
   useEffect(() => {
@@ -32,7 +36,7 @@ export const NotificationProvider = ({ children }) => {
   const loadNotificationSettings = async () => {
     try {
       const saved = await AsyncStorage.getItem('notificationsEnabled');
-      setNotificationsEnabled(saved !== 'false'); // По умолчанию true
+      setNotificationsEnabled(saved !== 'false');
     } catch (error) {
       console.error('Error loading notification settings:', error);
     } finally {
@@ -46,10 +50,8 @@ export const NotificationProvider = ({ children }) => {
       await AsyncStorage.setItem('notificationsEnabled', String(value));
       
       if (value && permissionStatus === 'granted') {
-        // Запланировать ежедневное напоминание
         await scheduleDailyReminder();
       } else {
-        // Отменить все уведомления
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
     } catch (error) {
@@ -57,31 +59,29 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
-  // Функции для разных типов уведомлений
+  // Функции для разных типов уведомлений (пока без переводов, так как язык может меняться)
   const scheduleDailyReminder = async () => {
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    // Рассчитываем время на 20:00 сегодня
     const trigger = new Date();
     trigger.setHours(20, 0, 0, 0);
     if (trigger < new Date()) {
-        trigger.setDate(trigger.getDate() + 1);
+      trigger.setDate(trigger.getDate() + 1);
     }
 
-    // Правильный формат для ежедневного повторения
     await Notifications.scheduleNotificationAsync({
-        content: {
+      content: {
         title: 'RiskDetect',
         body: 'Как прошёл ваш день? Отметьте настроение и запишите мысли в дневник.',
         data: { screen: 'Journal' },
-        },
-        trigger: {
-        type: 'daily', // Используем встроенный тип 'daily'
+      },
+      trigger: {
+        type: 'daily',
         hour: 20,
         minute: 0,
-        },
+      },
     });
-    };
+  };
 
   const sendMoodReminder = async () => {
     if (!notificationsEnabled || permissionStatus !== 'granted') return;
@@ -92,7 +92,7 @@ export const NotificationProvider = ({ children }) => {
         body: 'Не забудьте отметить своё настроение сегодня!',
         data: { screen: 'Home' },
       },
-      trigger: null, // Отправить сразу
+      trigger: null,
     });
   };
 

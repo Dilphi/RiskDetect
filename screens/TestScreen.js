@@ -14,230 +14,232 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/TestStyles';
 
-// Реальные психологические тесты
-const tests = [
+// Реальные психологические тесты с локализацией
+const getTests = (t) => [
   {
     id: 1,
-    title: 'Шкала депрессии Бека',
-    description: 'Оценка наличия и выраженности депрессивных симптомов',
+    title: t('tests.beck_depression'),
+    description: t('tests.beck_description'),
     questions: [
       {
         id: 1,
-        text: 'Как вы оцениваете свое настроение?',
+        text: t('tests.question1_mood'),
         options: [
-          { text: 'Я не чувствую грусти', score: 0 },
-          { text: 'Я иногда чувствую грусть', score: 1 },
-          { text: 'Я все время чувствую грусть', score: 2 },
-          { text: 'Я так несчастлив, что не могу этого вынести', score: 3 }
+          { text: t('tests.q1_opt1'), score: 0 },
+          { text: t('tests.q1_opt2'), score: 1 },
+          { text: t('tests.q1_opt3'), score: 2 },
+          { text: t('tests.q1_opt4'), score: 3 }
         ]
       },
       {
         id: 2,
-        text: 'Как вы относитесь к будущему?',
+        text: t('tests.question2_future'),
         options: [
-          { text: 'С оптимизмом', score: 0 },
-          { text: 'Иногда кажется, что ничего хорошего не будет', score: 1 },
-          { text: 'Я чувствую, что не могу преодолеть трудности', score: 2 },
-          { text: 'Будущее безнадежно', score: 3 }
+          { text: t('tests.q2_opt1'), score: 0 },
+          { text: t('tests.q2_opt2'), score: 1 },
+          { text: t('tests.q2_opt3'), score: 2 },
+          { text: t('tests.q2_opt4'), score: 3 }
         ]
       },
       {
         id: 3,
-        text: 'Оцените свою самооценку',
+        text: t('tests.question3_self_esteem'),
         options: [
-          { text: 'Я чувствую себя полноценным человеком', score: 0 },
-          { text: 'Я чувствую себя неудачником', score: 1 },
-          { text: 'Я разочарован в себе', score: 2 },
-          { text: 'Я ненавижу себя', score: 3 }
+          { text: t('tests.q3_opt1'), score: 0 },
+          { text: t('tests.q3_opt2'), score: 1 },
+          { text: t('tests.q3_opt3'), score: 2 },
+          { text: t('tests.q3_opt4'), score: 3 }
         ]
       },
       {
         id: 4,
-        text: 'Как вы оцениваете свою работоспособность?',
+        text: t('tests.question4_productivity'),
         options: [
-          { text: 'Я работаю как обычно', score: 0 },
-          { text: 'Мне трудно начинать работу', score: 1 },
-          { text: 'Мне приходится заставлять себя работать', score: 2 },
-          { text: 'Я вообще не могу работать', score: 3 }
+          { text: t('tests.q4_opt1'), score: 0 },
+          { text: t('tests.q4_opt2'), score: 1 },
+          { text: t('tests.q4_opt3'), score: 2 },
+          { text: t('tests.q4_opt4'), score: 3 }
         ]
       },
       {
         id: 5,
-        text: 'Как вы оцениваете свой сон?',
+        text: t('tests.question5_sleep'),
         options: [
-          { text: 'Я сплю хорошо', score: 0 },
-          { text: 'Я сплю беспокойно', score: 1 },
-          { text: 'Я просыпаюсь на 1-2 часа раньше', score: 2 },
-          { text: 'Я просыпаюсь на несколько часов раньше', score: 3 }
+          { text: t('tests.q5_opt1'), score: 0 },
+          { text: t('tests.q5_opt2'), score: 1 },
+          { text: t('tests.q5_opt3'), score: 2 },
+          { text: t('tests.q5_opt4'), score: 3 }
         ]
       }
     ],
-    time: '5-10 мин'
+    time: t('tests.time_5_10')
   },
   {
     id: 2,
-    title: 'Шкала тревоги Спилбергера',
-    description: 'Оценка уровня ситуативной и личностной тревожности',
+    title: t('tests.spielberger_anxiety'),
+    description: t('tests.spielberger_description'),
     questions: [
       {
         id: 1,
-        text: 'Я чувствую себя спокойно',
+        text: t('tests.anxiety_q1'),
         options: [
-          { text: 'Нет, это не так', score: 3 },
-          { text: 'Пожалуй, так', score: 2 },
-          { text: 'Верно', score: 1 },
-          { text: 'Совершенно верно', score: 0 }
+          { text: t('tests.anxiety_opt1'), score: 3 },
+          { text: t('tests.anxiety_opt2'), score: 2 },
+          { text: t('tests.anxiety_opt3'), score: 1 },
+          { text: t('tests.anxiety_opt4'), score: 0 }
         ]
       },
       {
         id: 2,
-        text: 'Я напряжен',
+        text: t('tests.anxiety_q2'),
         options: [
-          { text: 'Нет, это не так', score: 0 },
-          { text: 'Пожалуй, так', score: 1 },
-          { text: 'Верно', score: 2 },
-          { text: 'Совершенно верно', score: 3 }
+          { text: t('tests.anxiety_opt1'), score: 0 },
+          { text: t('tests.anxiety_opt2'), score: 1 },
+          { text: t('tests.anxiety_opt3'), score: 2 },
+          { text: t('tests.anxiety_opt4'), score: 3 }
         ]
       },
       {
         id: 3,
-        text: 'Я расстроен',
+        text: t('tests.anxiety_q3'),
         options: [
-          { text: 'Нет, это не так', score: 0 },
-          { text: 'Пожалуй, так', score: 1 },
-          { text: 'Верно', score: 2 },
-          { text: 'Совершенно верно', score: 3 }
+          { text: t('tests.anxiety_opt1'), score: 0 },
+          { text: t('tests.anxiety_opt2'), score: 1 },
+          { text: t('tests.anxiety_opt3'), score: 2 },
+          { text: t('tests.anxiety_opt4'), score: 3 }
         ]
       },
       {
         id: 4,
-        text: 'Я нервничаю',
+        text: t('tests.anxiety_q4'),
         options: [
-          { text: 'Нет, это не так', score: 0 },
-          { text: 'Пожалуй, так', score: 1 },
-          { text: 'Верно', score: 2 },
-          { text: 'Совершенно верно', score: 3 }
+          { text: t('tests.anxiety_opt1'), score: 0 },
+          { text: t('tests.anxiety_opt2'), score: 1 },
+          { text: t('tests.anxiety_opt3'), score: 2 },
+          { text: t('tests.anxiety_opt4'), score: 3 }
         ]
       },
       {
         id: 5,
-        text: 'Я чувствую себя отдохнувшим',
+        text: t('tests.anxiety_q5'),
         options: [
-          { text: 'Нет, это не так', score: 3 },
-          { text: 'Пожалуй, так', score: 2 },
-          { text: 'Верно', score: 1 },
-          { text: 'Совершенно верно', score: 0 }
+          { text: t('tests.anxiety_opt1'), score: 3 },
+          { text: t('tests.anxiety_opt2'), score: 2 },
+          { text: t('tests.anxiety_opt3'), score: 1 },
+          { text: t('tests.anxiety_opt4'), score: 0 }
         ]
       }
     ],
-    time: '5 мин'
+    time: t('tests.time_5')
   },
   {
     id: 3,
-    title: 'Оценка уровня стресса',
-    description: 'Оценка психологического стресса за последний месяц',
+    title: t('tests.stress_assessment'),
+    description: t('tests.stress_description'),
     questions: [
       {
         id: 1,
-        text: 'Как часто вы чувствуете, что не можете контролировать важные вещи в своей жизни?',
+        text: t('tests.stress_q1'),
         options: [
-          { text: 'Никогда', score: 0 },
-          { text: 'Почти никогда', score: 1 },
-          { text: 'Иногда', score: 2 },
-          { text: 'Довольно часто', score: 3 },
-          { text: 'Очень часто', score: 4 }
+          { text: t('tests.stress_opt1'), score: 0 },
+          { text: t('tests.stress_opt2'), score: 1 },
+          { text: t('tests.stress_opt3'), score: 2 },
+          { text: t('tests.stress_opt4'), score: 3 },
+          { text: t('tests.stress_opt5'), score: 4 }
         ]
       },
       {
         id: 2,
-        text: 'Как часто вы чувствуете уверенность в своих способностях решать личные проблемы?',
+        text: t('tests.stress_q2'),
         options: [
-          { text: 'Никогда', score: 4 },
-          { text: 'Почти никогда', score: 3 },
-          { text: 'Иногда', score: 2 },
-          { text: 'Довольно часто', score: 1 },
-          { text: 'Очень часто', score: 0 }
+          { text: t('tests.stress_opt1'), score: 4 },
+          { text: t('tests.stress_opt2'), score: 3 },
+          { text: t('tests.stress_opt3'), score: 2 },
+          { text: t('tests.stress_opt4'), score: 1 },
+          { text: t('tests.stress_opt5'), score: 0 }
         ]
       },
       {
         id: 3,
-        text: 'Как часто вы чувствуете, что все идет так, как вы хотите?',
+        text: t('tests.stress_q3'),
         options: [
-          { text: 'Никогда', score: 4 },
-          { text: 'Почти никогда', score: 3 },
-          { text: 'Иногда', score: 2 },
-          { text: 'Довольно часто', score: 1 },
-          { text: 'Очень часто', score: 0 }
+          { text: t('tests.stress_opt1'), score: 4 },
+          { text: t('tests.stress_opt2'), score: 3 },
+          { text: t('tests.stress_opt3'), score: 2 },
+          { text: t('tests.stress_opt4'), score: 1 },
+          { text: t('tests.stress_opt5'), score: 0 }
         ]
       },
       {
         id: 4,
-        text: 'Как часто вы чувствуете, что трудности накапливаются так сильно, что вы не можете их преодолеть?',
+        text: t('tests.stress_q4'),
         options: [
-          { text: 'Никогда', score: 0 },
-          { text: 'Почти никогда', score: 1 },
-          { text: 'Иногда', score: 2 },
-          { text: 'Довольно часто', score: 3 },
-          { text: 'Очень часто', score: 4 }
+          { text: t('tests.stress_opt1'), score: 0 },
+          { text: t('tests.stress_opt2'), score: 1 },
+          { text: t('tests.stress_opt3'), score: 2 },
+          { text: t('tests.stress_opt4'), score: 3 },
+          { text: t('tests.stress_opt5'), score: 4 }
         ]
       }
     ],
-    time: '3-5 мин'
+    time: t('tests.time_3_5')
   },
   {
     id: 4,
-    title: 'Оценка качества жизни',
-    description: 'Оценка удовлетворенности различными сферами жизни',
+    title: t('tests.quality_of_life'),
+    description: t('tests.quality_description'),
     questions: [
       {
         id: 1,
-        text: 'Как вы оцениваете свое физическое здоровье?',
+        text: t('tests.quality_q1'),
         options: [
-          { text: 'Отлично', score: 4 },
-          { text: 'Хорошо', score: 3 },
-          { text: 'Удовлетворительно', score: 2 },
-          { text: 'Плохо', score: 1 },
-          { text: 'Очень плохо', score: 0 }
+          { text: t('tests.quality_opt1'), score: 4 },
+          { text: t('tests.quality_opt2'), score: 3 },
+          { text: t('tests.quality_opt3'), score: 2 },
+          { text: t('tests.quality_opt4'), score: 1 },
+          { text: t('tests.quality_opt5'), score: 0 }
         ]
       },
       {
         id: 2,
-        text: 'Как вы оцениваете свое психологическое состояние?',
+        text: t('tests.quality_q2'),
         options: [
-          { text: 'Отлично', score: 4 },
-          { text: 'Хорошо', score: 3 },
-          { text: 'Удовлетворительно', score: 2 },
-          { text: 'Плохо', score: 1 },
-          { text: 'Очень плохо', score: 0 }
+          { text: t('tests.quality_opt1'), score: 4 },
+          { text: t('tests.quality_opt2'), score: 3 },
+          { text: t('tests.quality_opt3'), score: 2 },
+          { text: t('tests.quality_opt4'), score: 1 },
+          { text: t('tests.quality_opt5'), score: 0 }
         ]
       },
       {
         id: 3,
-        text: 'Как вы оцениваете свои социальные связи?',
+        text: t('tests.quality_q3'),
         options: [
-          { text: 'Отлично', score: 4 },
-          { text: 'Хорошо', score: 3 },
-          { text: 'Удовлетворительно', score: 2 },
-          { text: 'Плохо', score: 1 },
-          { text: 'Очень плохо', score: 0 }
+          { text: t('tests.quality_opt1'), score: 4 },
+          { text: t('tests.quality_opt2'), score: 3 },
+          { text: t('tests.quality_opt3'), score: 2 },
+          { text: t('tests.quality_opt4'), score: 1 },
+          { text: t('tests.quality_opt5'), score: 0 }
         ]
       },
       {
         id: 4,
-        text: 'Как вы оцениваете свою рабочую/учебную продуктивность?',
+        text: t('tests.quality_q4'),
         options: [
-          { text: 'Отлично', score: 4 },
-          { text: 'Хорошо', score: 3 },
-          { text: 'Удовлетворительно', score: 2 },
-          { text: 'Плохо', score: 1 },
-          { text: 'Очень плохо', score: 0 }
+          { text: t('tests.quality_opt1'), score: 4 },
+          { text: t('tests.quality_opt2'), score: 3 },
+          { text: t('tests.quality_opt3'), score: 2 },
+          { text: t('tests.quality_opt4'), score: 1 },
+          { text: t('tests.quality_opt5'), score: 0 }
         ]
       }
     ],
-    time: '3 мин'
+    time: t('tests.time_3')
   }
 ];
 
@@ -250,7 +252,10 @@ export default function TestScreen({ navigation, userData }) {
   const [testResult, setTestResult] = useState(null);
   const [completedTests, setCompletedTests] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { theme } = useTheme(); 
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+
+  const tests = getTests(t);
 
   useEffect(() => {
     loadCompletedTests();
@@ -273,7 +278,6 @@ export default function TestScreen({ navigation, userData }) {
       };
     }
   }, [theme.dark]);
-
 
   const loadCompletedTests = async () => {
     try {
@@ -299,7 +303,7 @@ export default function TestScreen({ navigation, userData }) {
 
   const nextQuestion = () => {
     if (answers[currentQuestion] === undefined) {
-      Alert.alert('Ошибка', 'Пожалуйста, выберите ответ');
+      Alert.alert(t('common.error'), t('tests.select_answer'));
       return;
     }
 
@@ -325,52 +329,51 @@ export default function TestScreen({ navigation, userData }) {
     
     let level, description, recommendations;
     
-    if (selectedTest.id === 1) { // Шкала депрессии
+    if (selectedTest.id === 1) {
       if (totalScore <= 4) {
-        level = 'Норма';
-        description = 'У вас нет признаков депрессии. Вы хорошо справляетесь с эмоциональными нагрузками.';
-        recommendations = ['Продолжайте поддерживать здоровый образ жизни', 'Регулярно занимайтесь физической активностью', 'Сохраняйте социальные контакты'];
+        level = t('tests.normal');
+        description = t('tests.normal_desc');
+        recommendations = [t('tests.normal_rec1'), t('tests.normal_rec2'), t('tests.normal_rec3')];
       } else if (totalScore <= 9) {
-        level = 'Легкая депрессия';
-        description = 'У вас наблюдаются легкие признаки депрессии. Рекомендуется обратить внимание на свое состояние.';
-        recommendations = ['Ведите дневник настроения', 'Увеличьте физическую активность', 'Практикуйте техники релаксации'];
+        level = t('tests.mild');
+        description = t('tests.mild_desc');
+        recommendations = [t('tests.mild_rec1'), t('tests.mild_rec2'), t('tests.mild_rec3')];
       } else if (totalScore <= 14) {
-        level = 'Умеренная депрессия';
-        description = 'У вас наблюдаются умеренные признаки депрессии. Рекомендуется консультация психолога.';
-        recommendations = ['Обратитесь к психологу', 'Регулярно отслеживайте настроение', 'Не изолируйтесь от близких'];
+        level = t('tests.moderate');
+        description = t('tests.moderate_desc');
+        recommendations = [t('tests.moderate_rec1'), t('tests.moderate_rec2'), t('tests.moderate_rec3')];
       } else {
-        level = 'Высокий уровень депрессии';
-        description = 'У вас наблюдаются серьезные признаки депрессии. Настоятельно рекомендуется обратиться к специалисту.';
-        recommendations = ['Немедленно обратитесь к психологу', 'Поделитесь своими чувствами с близкими', 'Не оставайтесь в одиночестве'];
+        level = t('tests.severe');
+        description = t('tests.severe_desc');
+        recommendations = [t('tests.severe_rec1'), t('tests.severe_rec2'), t('tests.severe_rec3')];
       }
-    } else if (selectedTest.id === 2) { // Тревога
+    } else if (selectedTest.id === 2) {
       if (totalScore <= 5) {
-        level = 'Низкий уровень тревоги';
-        description = 'У вас низкий уровень тревожности. Вы хорошо справляетесь со стрессовыми ситуациями.';
-        recommendations = ['Продолжайте использовать эффективные стратегии совладания', 'Поддерживайте здоровый баланс работы и отдыха'];
+        level = t('tests.low_anxiety');
+        description = t('tests.low_anxiety_desc');
+        recommendations = [t('tests.low_anxiety_rec1'), t('tests.low_anxiety_rec2')];
       } else if (totalScore <= 10) {
-        level = 'Умеренный уровень тревоги';
-        description = 'У вас умеренный уровень тревожности. Это нормальная реакция на стресс.';
-        recommendations = ['Практикуйте дыхательные упражнения', 'Используйте техники заземления', 'Регулярно отдыхайте'];
+        level = t('tests.moderate_anxiety');
+        description = t('tests.moderate_anxiety_desc');
+        recommendations = [t('tests.moderate_anxiety_rec1'), t('tests.moderate_anxiety_rec2'), t('tests.moderate_anxiety_rec3')];
       } else {
-        level = 'Высокий уровень тревоги';
-        description = 'У вас высокий уровень тревожности. Рекомендуется работа с психологом.';
-        recommendations = ['Обратитесь к психологу', 'Изучите техники управления тревогой', 'Избегайте стимуляторов'];
+        level = t('tests.high_anxiety');
+        description = t('tests.high_anxiety_desc');
+        recommendations = [t('tests.high_anxiety_rec1'), t('tests.high_anxiety_rec2'), t('tests.high_anxiety_rec3')];
       }
     } else {
-      // Общая интерпретация для других тестов
       if (percentage >= 70) {
-        level = 'Высокий показатель';
-        description = 'У вас высокие показатели по данному тесту.';
-        recommendations = ['Продолжайте следить за своим состоянием', 'Используйте полученные результаты для самопознания'];
+        level = t('tests.high_score');
+        description = t('tests.high_score_desc');
+        recommendations = [t('tests.high_score_rec1'), t('tests.high_score_rec2')];
       } else if (percentage >= 40) {
-        level = 'Средний показатель';
-        description = 'У вас средние показатели по данному тесту.';
-        recommendations = ['Обратите внимание на области, требующие улучшения', 'Поставьте цели для личностного роста'];
+        level = t('tests.medium_score');
+        description = t('tests.medium_score_desc');
+        recommendations = [t('tests.medium_score_rec1'), t('tests.medium_score_rec2')];
       } else {
-        level = 'Низкий показатель';
-        description = 'У вас низкие показатели по данному тесту. Это может указывать на необходимость обратить внимание на эту сферу.';
-        recommendations = ['Работайте над улучшением в этой области', 'Обратитесь за поддержкой к специалисту'];
+        level = t('tests.low_score');
+        description = t('tests.low_score_desc');
+        recommendations = [t('tests.low_score_rec1'), t('tests.low_score_rec2')];
       }
     }
 
@@ -390,7 +393,6 @@ export default function TestScreen({ navigation, userData }) {
     setShowTestModal(false);
     setShowResultModal(true);
 
-    // Сохраняем результат
     try {
       const testsJson = await AsyncStorage.getItem(`tests_${userData?.id}`);
       let tests = testsJson ? JSON.parse(testsJson) : [];
@@ -432,7 +434,7 @@ export default function TestScreen({ navigation, userData }) {
           </View>
           
           <Text style={[styles.questionCounter, { color: theme.colors.textSecondary }]}>
-            Вопрос {currentQuestion + 1} из {selectedTest?.questions.length}
+            {t('tests.question_counter', { current: currentQuestion + 1, total: selectedTest?.questions.length })}
           </Text>
 
           <ScrollView style={styles.questionContainer}>
@@ -471,7 +473,7 @@ export default function TestScreen({ navigation, userData }) {
                 style={[styles.modalButton, styles.prevButton, { borderColor: theme.colors.border }]}
                 onPress={prevQuestion}
               >
-                <Text style={[styles.prevButtonText, { color: theme.colors.textSecondary }]}>Назад</Text>
+                <Text style={[styles.prevButtonText, { color: theme.colors.textSecondary }]}>{t('tests.back')}</Text>
               </TouchableOpacity>
             )}
             
@@ -485,7 +487,7 @@ export default function TestScreen({ navigation, userData }) {
               onPress={nextQuestion}
             >
               <Text style={[styles.nextButtonText, { color: theme.colors.white }]}>
-                {currentQuestion === selectedTest?.questions.length - 1 ? 'Завершить' : 'Далее'}
+                {currentQuestion === selectedTest?.questions.length - 1 ? t('tests.finish') : t('tests.next')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -506,21 +508,21 @@ export default function TestScreen({ navigation, userData }) {
             <Ionicons name="checkmark-circle" size={64} color={theme.colors.success} />
           </View>
           
-          <Text style={[styles.resultTitle, { color: theme.colors.text }]}>Тест завершен!</Text>
+          <Text style={[styles.resultTitle, { color: theme.colors.text }]}>{t('tests.test_completed')}</Text>
           <Text style={[styles.resultTestName, { color: theme.colors.textSecondary }]}>{testResult?.testTitle}</Text>
           
           <View style={styles.scoreContainer}>
-            <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary }]}>Ваш результат:</Text>
+            <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary }]}>{t('tests.your_score')}</Text>
             <Text style={[styles.scoreValue, { color: theme.colors.text }]}>{testResult?.score} / {testResult?.maxScore}</Text>
             <Text style={[styles.scorePercentage, { color: theme.colors.success }]}>{testResult?.percentage}%</Text>
           </View>
 
           <View style={styles.levelContainer}>
-            <Text style={[styles.levelLabel, { color: theme.colors.textSecondary }]}>Уровень:</Text>
+            <Text style={[styles.levelLabel, { color: theme.colors.textSecondary }]}>{t('tests.level')}</Text>
             <Text style={[
               styles.levelValue,
-              testResult?.level?.includes('Высокий') ? { color: theme.colors.error } :
-              testResult?.level?.includes('Умеренный') ? { color: theme.colors.warning } :
+              testResult?.level?.includes(t('tests.high_score')) ? { color: theme.colors.error } :
+              testResult?.level?.includes(t('tests.moderate')) ? { color: theme.colors.warning } :
               { color: theme.colors.success }
             ]}>
               {testResult?.level}
@@ -532,7 +534,7 @@ export default function TestScreen({ navigation, userData }) {
           </View>
 
           <View style={styles.recommendationsContainer}>
-            <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>Рекомендации:</Text>
+            <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>{t('tests.recommendations')}</Text>
             {testResult?.recommendations.map((rec, index) => (
               <View key={index} style={styles.recommendationItem}>
                 <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
@@ -548,7 +550,7 @@ export default function TestScreen({ navigation, userData }) {
               setTestResult(null);
             }}
           >
-            <Text style={[styles.closeButtonText, { color: theme.colors.white }]}>Готово</Text>
+            <Text style={[styles.closeButtonText, { color: theme.colors.white }]}>{t('tests.done')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -560,7 +562,7 @@ export default function TestScreen({ navigation, userData }) {
       <ScreenWrapper>
         <View style={[styles.loadingOverlay, { backgroundColor: theme.colors.overlay }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Обработка результатов...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>{t('tests.processing')}</Text>
         </View>
       </ScreenWrapper>
     );
@@ -569,19 +571,24 @@ export default function TestScreen({ navigation, userData }) {
   return (
     <ScreenWrapper>
       <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Переключатель языка */}
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8 }}>
+          <LanguageSwitcher />
+        </View>
+
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Психологические тесты</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t('tests.title')}</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-            Проходите тесты для оценки своего состояния и отслеживания динамики
+            {t('tests.subtitle')}
           </Text>
         </View>
 
         <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>Ваша статистика</Text>
+          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>{t('tests.your_stats')}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>{completedTests.length}</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Тестов пройдено</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('tests.tests_taken')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.statItem}>
@@ -590,12 +597,12 @@ export default function TestScreen({ navigation, userData }) {
                   ? Math.round(completedTests.reduce((sum, t) => sum + t.percentage, 0) / completedTests.length) 
                   : 0}%
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Средний результат</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('tests.avg_result')}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Доступные тесты</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('tests.available_tests')}</Text>
 
         {tests.map((test) => (
           <TouchableOpacity
@@ -619,10 +626,10 @@ export default function TestScreen({ navigation, userData }) {
             
             <View style={styles.testFooter}>
               <Text style={[styles.testQuestions, { color: theme.colors.textSecondary }]}>
-                {test.questions.length} вопросов
+                {test.questions.length} {t('tests.questions')}
               </Text>
               <View style={styles.startButton}>
-                <Text style={[styles.startButtonText, { color: theme.colors.primary }]}>Начать тест</Text>
+                <Text style={[styles.startButtonText, { color: theme.colors.primary }]}>{t('tests.start')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
               </View>
             </View>
@@ -631,7 +638,7 @@ export default function TestScreen({ navigation, userData }) {
 
         {completedTests.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>История тестов</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('tests.history')}</Text>
             {completedTests.slice(-3).reverse().map((test, index) => (
               <View key={index} style={[styles.historyCard, { backgroundColor: theme.colors.card }]}>
                 <View style={styles.historyHeader}>
@@ -642,12 +649,12 @@ export default function TestScreen({ navigation, userData }) {
                 </View>
                 <View style={styles.historyResult}>
                   <Text style={[styles.historyScore, { color: theme.colors.textSecondary }]}>
-                    Результат: {test.score} / {test.maxScore}
+                    {t('tests.result_label', { score: test.score, max: test.maxScore })}
                   </Text>
                   <Text style={[
                     styles.historyLevel,
-                    test.level?.includes('Высокий') ? { color: theme.colors.error } :
-                    test.level?.includes('Умеренный') ? { color: theme.colors.warning } :
+                    test.level?.includes(t('tests.high_score')) ? { color: theme.colors.error } :
+                    test.level?.includes(t('tests.moderate')) ? { color: theme.colors.warning } :
                     { color: theme.colors.success }
                   ]}>
                     {test.level}

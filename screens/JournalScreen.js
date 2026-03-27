@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/JournalStyles';
 
@@ -30,6 +32,7 @@ export default function JournalScreen({ navigation, userData }) {
   });
   const [selectedEntry, setSelectedEntry] = useState(null);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Настройка навигационной панели
   useEffect(() => {
@@ -46,16 +49,15 @@ export default function JournalScreen({ navigation, userData }) {
       };
 
       configureNavigationBar();
-
     }
   }, [theme.dark]);
 
   const moodOptions = [
-    { value: 1, label: 'Очень плохо', emoji: '😢', color: theme.colors.error },
-    { value: 2, label: 'Плохо', emoji: '😔', color: theme.colors.warning },
-    { value: 3, label: 'Нормально', emoji: '😐', color: theme.colors.warning },
-    { value: 4, label: 'Хорошо', emoji: '🙂', color: theme.colors.success },
-    { value: 5, label: 'Отлично', emoji: '😊', color: theme.colors.success },
+    { value: 1, label: t('journal.very_bad'), emoji: '😢', color: theme.colors.error },
+    { value: 2, label: t('journal.bad'), emoji: '😔', color: theme.colors.warning },
+    { value: 3, label: t('journal.normal'), emoji: '😐', color: theme.colors.warning },
+    { value: 4, label: t('journal.good'), emoji: '🙂', color: theme.colors.success },
+    { value: 5, label: t('journal.excellent'), emoji: '😊', color: theme.colors.success },
   ];
 
   useEffect(() => {
@@ -75,12 +77,12 @@ export default function JournalScreen({ navigation, userData }) {
 
   const saveEntry = async () => {
     if (!newEntry.title.trim()) {
-      Alert.alert('Ошибка', 'Введите заголовок записи');
+      Alert.alert(t('common.error'), t('journal.add_title_error'));
       return;
     }
 
     if (!newEntry.content.trim()) {
-      Alert.alert('Ошибка', 'Введите текст записи');
+      Alert.alert(t('common.error'), t('journal.add_content_error'));
       return;
     }
 
@@ -99,29 +101,29 @@ export default function JournalScreen({ navigation, userData }) {
       setEntries(updatedEntries);
       setShowAddModal(false);
       resetForm();
-      Alert.alert('Успешно', 'Запись добавлена в дневник');
+      Alert.alert(t('common.success'), t('journal.add_success'));
     } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось сохранить запись');
+      Alert.alert(t('common.error'), t('journal.add_error'));
     }
   };
 
   const deleteEntry = (id) => {
     Alert.alert(
-      'Удаление записи',
-      'Вы уверены, что хотите удалить эту запись?',
+      t('journal.delete_title'),
+      t('journal.delete_confirm'),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               const updatedEntries = entries.filter(entry => entry.id !== id);
               await AsyncStorage.setItem(`journal_${userData?.id}`, JSON.stringify(updatedEntries));
               setEntries(updatedEntries);
-              Alert.alert('Успешно', 'Запись удалена');
+              Alert.alert(t('common.success'), t('journal.delete_success'));
             } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось удалить запись');
+              Alert.alert(t('common.error'), t('journal.delete_error'));
             }
           }
         }
@@ -138,11 +140,6 @@ export default function JournalScreen({ navigation, userData }) {
     });
   };
 
-  const getMoodColor = (value) => {
-    const mood = moodOptions.find(m => m.value === value);
-    return mood?.color || theme.colors.lightGray;
-  };
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -150,9 +147,9 @@ export default function JournalScreen({ navigation, userData }) {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return 'Сегодня';
+      return t('journal.today');
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Вчера';
+      return t('journal.yesterday');
     } else {
       return date.toLocaleDateString('ru-RU', {
         day: 'numeric',
@@ -168,7 +165,7 @@ export default function JournalScreen({ navigation, userData }) {
         <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-            Загрузка дневника...
+            {t('common.loading')}
           </Text>
         </View>
       </ScreenWrapper>
@@ -178,8 +175,13 @@ export default function JournalScreen({ navigation, userData }) {
   return (
     <ScreenWrapper>
       <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Переключатель языка */}
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8 }}>
+          <LanguageSwitcher />
+        </View>
+
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Дневник</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t('journal.title')}</Text>
           <TouchableOpacity 
             style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => setShowAddModal(true)}
@@ -190,7 +192,7 @@ export default function JournalScreen({ navigation, userData }) {
 
         {/* Статистика настроения */}
         <View style={[styles.statsCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>Ваше настроение</Text>
+          <Text style={[styles.statsTitle, { color: theme.colors.text }]}>{t('journal.your_mood')}</Text>
           <View style={styles.moodStats}>
             {[5,4,3,2,1].map(value => {
               const count = entries.filter(e => e.mood === value).length;
@@ -222,23 +224,23 @@ export default function JournalScreen({ navigation, userData }) {
 
         {/* Записи */}
         <View style={styles.entriesSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Мои записи</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('journal.my_entries')}</Text>
           
           {entries.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="book-outline" size={64} color={theme.colors.lightGray} />
               <Text style={[styles.emptyStateText, { color: theme.colors.text }]}>
-                В дневнике пока нет записей
+                {t('journal.no_entries')}
               </Text>
               <Text style={[styles.emptyStateSubtext, { color: theme.colors.textSecondary }]}>
-                Начните вести дневник, чтобы отслеживать свои мысли и чувства
+                {t('journal.start_journaling')}
               </Text>
               <TouchableOpacity 
                 style={[styles.emptyStateButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => setShowAddModal(true)}
               >
                 <Text style={[styles.emptyStateButtonText, { color: theme.colors.white }]}>
-                  Создать первую запись
+                  {t('journal.create_first')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -283,7 +285,7 @@ export default function JournalScreen({ navigation, userData }) {
         <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Новая запись</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('journal.new_entry')}</Text>
               <TouchableOpacity onPress={() => {
                 setShowAddModal(false);
                 resetForm();
@@ -293,20 +295,20 @@ export default function JournalScreen({ navigation, userData }) {
             </View>
 
             <ScrollView style={styles.modalForm}>
-              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Заголовок</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>{t('journal.title_field')}</Text>
               <TextInput
                 style={[styles.titleInput, { 
                   backgroundColor: theme.colors.background,
                   borderColor: theme.colors.border,
                   color: theme.colors.text 
                 }]}
-                placeholder="О чем вы думаете?"
+                placeholder={t('journal.title_placeholder')}
                 placeholderTextColor={theme.colors.lightGray}
                 value={newEntry.title}
                 onChangeText={(text) => setNewEntry({...newEntry, title: text})}
               />
 
-              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Ваше настроение</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>{t('journal.mood_field')}</Text>
               <View style={styles.moodSelector}>
                 {moodOptions.map((mood) => (
                   <TouchableOpacity
@@ -329,14 +331,14 @@ export default function JournalScreen({ navigation, userData }) {
                 ))}
               </View>
 
-              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>Запись</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.text }]}>{t('journal.entry_content')}</Text>
               <TextInput
                 style={[styles.contentInput, { 
                   backgroundColor: theme.colors.background,
                   borderColor: theme.colors.border,
                   color: theme.colors.text 
                 }]}
-                placeholder="Напишите свои мысли, чувства, переживания..."
+                placeholder={t('journal.write_thoughts')}
                 placeholderTextColor={theme.colors.lightGray}
                 value={newEntry.content}
                 onChangeText={(text) => setNewEntry({...newEntry, content: text})}
@@ -355,7 +357,7 @@ export default function JournalScreen({ navigation, userData }) {
                 }}
               >
                 <Text style={[styles.modalButtonCancelText, { color: theme.colors.textSecondary }]}>
-                  Отмена
+                  {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
               
@@ -364,7 +366,7 @@ export default function JournalScreen({ navigation, userData }) {
                 onPress={saveEntry}
               >
                 <Text style={[styles.modalButtonSaveText, { color: theme.colors.white }]}>
-                  Сохранить
+                  {t('common.save')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -421,7 +423,7 @@ export default function JournalScreen({ navigation, userData }) {
               >
                 <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                 <Text style={[styles.viewEntryButtonDeleteText, { color: theme.colors.error }]}>
-                  Удалить
+                  {t('common.delete')}
                 </Text>
               </TouchableOpacity>
             </View>

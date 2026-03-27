@@ -11,14 +11,16 @@ import { Ionicons } from '@expo/vector-icons';
 import * as NavigationBar from 'expo-navigation-bar'; 
 
 import { useTheme } from '../components/ThemeContext';
+import { useTranslation } from '../components/Translation';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/TestResultStyles';
 
 export default function TestResultScreen({ route, navigation }) {
   const { result } = route.params;
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
-  // Настройка навигационной панели
   useEffect(() => {
     if (Platform.OS === 'android') {
       const configureNavigationBar = async () => {
@@ -37,15 +39,15 @@ export default function TestResultScreen({ route, navigation }) {
   }, [theme.dark]);
 
   const getLevelColor = (level) => {
-    if (level.includes('Низкий') || level.includes('Норма')) return theme.colors.success;
-    if (level.includes('Умеренный') || level.includes('Средний')) return theme.colors.warning;
+    if (level?.includes(t('test_results.normal')) || level?.includes(t('test_results.low_score'))) return theme.colors.success;
+    if (level?.includes(t('test_results.moderate')) || level?.includes(t('test_results.medium_score'))) return theme.colors.warning;
     return theme.colors.error;
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Результат теста "${result.testTitle}": ${result.level} (${result.score}/${result.maxScore}, ${result.percentage}%)`,
+        message: `${t('tests.result')} "${result.testTitle}": ${result.level} (${result.score}/${result.maxScore}, ${result.percentage}%)`,
       });
     } catch (error) {
       console.error(error);
@@ -55,12 +57,17 @@ export default function TestResultScreen({ route, navigation }) {
   return (
     <ScreenWrapper>
       <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Переключатель языка */}
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8 }}>
+          <LanguageSwitcher />
+        </View>
+
         {/* Заголовок */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Результат</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t('tests.result')}</Text>
           <TouchableOpacity onPress={handleShare}>
             <Ionicons name="share-outline" size={24} color={theme.colors.text} />
           </TouchableOpacity>
@@ -73,13 +80,13 @@ export default function TestResultScreen({ route, navigation }) {
         }]}>
           <View style={styles.scoreContainer}>
             <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary }]}>
-              Ваш результат
+              {t('tests.your_score')}
             </Text>
             <Text style={[styles.scoreValue, { color: theme.colors.text }]}>
               {result.score}
             </Text>
             <Text style={[styles.scoreMax, { color: theme.colors.textSecondary }]}>
-              из {result.maxScore}
+              {t('statistics.out_of')} {result.maxScore}
             </Text>
             <View style={[styles.levelBadge, { backgroundColor: getLevelColor(result.level) + '20' }]}>
               <Text style={[styles.levelText, { color: getLevelColor(result.level) }]}>
@@ -99,7 +106,7 @@ export default function TestResultScreen({ route, navigation }) {
 
         {/* Описание */}
         <View style={[styles.descriptionCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.descriptionTitle, { color: theme.colors.text }]}>Интерпретация</Text>
+          <Text style={[styles.descriptionTitle, { color: theme.colors.text }]}>{t('statistics.interpretation')}</Text>
           <Text style={[styles.descriptionText, { color: theme.colors.textSecondary }]}>
             {result.description}
           </Text>
@@ -107,7 +114,7 @@ export default function TestResultScreen({ route, navigation }) {
 
         {/* Рекомендации */}
         <View style={[styles.recommendationsCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>Рекомендации</Text>
+          <Text style={[styles.recommendationsTitle, { color: theme.colors.text }]}>{t('tests.recommendations')}</Text>
           {result.recommendations.map((rec, index) => (
             <View key={index} style={styles.recommendationItem}>
               <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
@@ -120,13 +127,13 @@ export default function TestResultScreen({ route, navigation }) {
 
         {/* Детали теста */}
         <View style={[styles.detailsCard, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.detailsTitle, { color: theme.colors.text }]}>Детали</Text>
+          <Text style={[styles.detailsTitle, { color: theme.colors.text }]}>{t('statistics.details')}</Text>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Тест:</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>{t('statistics.test')}:</Text>
             <Text style={[styles.detailValue, { color: theme.colors.text }]}>{result.testTitle}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Дата:</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>{t('statistics.date')}:</Text>
             <Text style={[styles.detailValue, { color: theme.colors.text }]}>
               {new Date(result.date).toLocaleDateString('ru-RU', {
                 day: 'numeric',
@@ -152,7 +159,7 @@ export default function TestResultScreen({ route, navigation }) {
           >
             <Ionicons name="refresh" size={20} color={theme.colors.info} />
             <Text style={[styles.retestButtonText, { color: theme.colors.info }]}>
-              Пройти ещё раз
+              {t('statistics.retake')}
             </Text>
           </TouchableOpacity>
           
@@ -167,7 +174,7 @@ export default function TestResultScreen({ route, navigation }) {
           >
             <Ionicons name="book" size={20} color={theme.colors.primary} />
             <Text style={[styles.diaryButtonText, { color: theme.colors.primary }]}>
-              Записать в дневник
+              {t('statistics.write_to_journal')}
             </Text>
           </TouchableOpacity>
         </View>
