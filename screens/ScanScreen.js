@@ -17,7 +17,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Brightness from 'expo-brightness';
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as NavigationBar from 'expo-navigation-bar';
 
 import { useTheme } from '../components/ThemeContext';
@@ -25,6 +25,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/ScanStyles';
+import api from '../services/api';
 
 // Имитация Bluetooth модуля (в реальном проекте будет использоваться react-native-ble-plx)
 const mockBleManager = {
@@ -240,7 +241,74 @@ export default function ScanScreen({ navigation, userData }) {
     }
   }, [theme.dark]);
 
-  // ... остальные эффекты без изменений ...
+    const startBLEScan = () => {
+    setIsScanning(true);
+    setFoundDevices([]);
+    
+    mockBleManager.scanForDevices((devices) => {
+      setFoundDevices(devices);
+      setIsScanning(false);
+      Vibration.vibrate(200);
+    });
+  };
+
+  const playScanSound = async () => {
+    /*try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/scan.mp3')  // Убедитесь, что файл существует
+      );
+      setSound(sound);
+      await sound.playAsync();
+    } catch (error) {
+      console.log('Sound error:', error);
+    }*/
+
+       console.log('Scan sound would play here');
+        return;
+  };
+
+  const identifyDevice = (qrData) => {
+    for (const device of ownDevices) {
+      if (device.qr_pattern.test(qrData)) {
+        return {
+          ...device,
+          serialNumber: qrData.split('-')[2],
+          fullData: qrData
+        };
+      }
+    }
+    return null;
+  };
+
+  const syncDeviceData = async (device) => {
+    setIsSyncing(true);
+    setSyncProgress(0);
+    
+    for (let i = 0; i <= 100; i += 10) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setSyncProgress(i);
+    }
+    
+    // Сохраняем устройство через API
+    try {
+      await api.saveDevice({
+        deviceId: device.id,
+        name: device.name,
+        model: device.model,
+        serialNumber: device.serialNumber,
+        battery: device.battery,
+        firmware: device.firmware
+      });
+    } catch (error) {
+      console.error('Save device error:', error);
+    }
+    
+    setIsSyncing(false);
+  };
+
+  const handleManualEntry = () => {
+    setShowManualModal(true);
+  };
 
   const handleBarCodeScanned = async ({ type, data }) => {
     setScanned(true);

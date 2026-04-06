@@ -19,6 +19,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/DeviceManagerStyles';
+import api from '../services/api'
 
 export default function DeviceManagerScreen({ navigation, userData }) {
   const [devices, setDevices] = useState([]);
@@ -79,12 +80,11 @@ export default function DeviceManagerScreen({ navigation, userData }) {
     }
   };
 
-  const loadDevices = async (userId) => {
+  const loadDevices = async () => {
     try {
-      const devicesData = await AsyncStorage.getItem(`paired_devices_${userId}`);
-      setDevices(devicesData ? JSON.parse(devicesData) : []);
+      const response = await api.getDevices();
+      setDevices(response.devices || []);
     } catch (error) {
-      console.error('Error loading devices:', error);
       Alert.alert(t('common.error'), t('devices.load_error'));
     } finally {
       setLoading(false);
@@ -121,12 +121,8 @@ export default function DeviceManagerScreen({ navigation, userData }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              const userId = userData?.id || currentUser?.id;
-              if (!userId) throw new Error('No user ID');
-              
-              const updatedDevices = devices.filter(d => d.id !== device.id);
-              await AsyncStorage.setItem(`paired_devices_${userId}`, JSON.stringify(updatedDevices));
-              setDevices(updatedDevices);
+              await api.deleteDevice(device._id);
+              await loadDevices();
               Alert.alert(t('common.success'), t('devices.unpair_success'));
             } catch (error) {
               Alert.alert(t('common.error'), t('devices.unpair_error'));

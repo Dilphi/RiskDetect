@@ -19,7 +19,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/AuthStyles';
-
+import api from '../services/api'
 
 export default function AuthScreen({ navigation, setIsAuthenticated, setUserData }) {
   const [email, setEmail] = useState('');
@@ -61,27 +61,14 @@ export default function AuthScreen({ navigation, setIsAuthenticated, setUserData
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const usersJson = await AsyncStorage.getItem('users');
-        const users = usersJson ? JSON.parse(usersJson) : [];
-        
-        const user = users.find(u => 
-          u.email.toLowerCase() === email.toLowerCase() && 
-          u.password === password
-        );
-
-        if (user) {
-          await AsyncStorage.setItem('currentUser', JSON.stringify(user));
-          await AsyncStorage.setItem('isAuthenticated', 'true');
-          
-          setUserData(user);
-          setIsAuthenticated(true);
-        } else {
-          Alert.alert(t('common.error'), t('auth.invalid_credentials'));
-        }
+      const response = await api.login({ email, password });
+      
+      if (response.success) {
+        setUserData(response.user);
+        setIsAuthenticated(true);
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('auth.login_error'));
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }

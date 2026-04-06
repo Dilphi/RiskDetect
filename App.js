@@ -26,7 +26,7 @@ import JournalEntryScreen from './screens/JournalEntryScreen';
 import PsychologistScreen from './screens/PsychologistScreen';
 import EmergencyScreen from './screens/EmergencyScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
-
+import api from './services/api';
 
 
 const Tab = createBottomTabNavigator();
@@ -196,15 +196,32 @@ function AppContent() {
 
   const checkAuthStatus = async () => {
     try {
-      const isAuth = await AsyncStorage.getItem('isAuthenticated');
-      const user = await AsyncStorage.getItem('currentUser');
-      
-      if (isAuth === 'true' && user) {
-        setIsAuthenticated(true);
-        setUserData(JSON.parse(user));
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await api.getMe();
+        if (response.success && response.user) {
+          setIsAuthenticated(true);
+          setUserData(response.user);
+        } else {
+          // Если пользователь не найден, очищаем токен
+          await AsyncStorage.removeItem('token');
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.log('Ошибка при проверке авторизации:', error.message);
+        // Очищаем токен при ошибке
+        await AsyncStorage.removeItem('token');
+        setIsAuthenticated(false);
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
@@ -212,8 +229,7 @@ function AppContent() {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('isAuthenticated');
-      await AsyncStorage.removeItem('currentUser');
+      await api.logout();
       setIsAuthenticated(false);
       setUserData(null);
     } catch (error) {

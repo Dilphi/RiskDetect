@@ -17,6 +17,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/HomeStyles';
+import api from '../services/api'
 
 export default function HomeScreen({ navigation, userData }) {
   const [user, setUser] = useState(userData);
@@ -64,9 +65,9 @@ export default function HomeScreen({ navigation, userData }) {
 
   const loadUserData = async () => {
     try {
-      const userJson = await AsyncStorage.getItem('currentUser');
-      if (userJson) {
-        setUser(JSON.parse(userJson));
+      const response = await api.getMe();
+      if (response.success) {
+        setUser(response.user);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -75,13 +76,15 @@ export default function HomeScreen({ navigation, userData }) {
 
   const loadStats = async () => {
     try {
-      const testsJson = await AsyncStorage.getItem(`tests_${user?.id}`);
-      const sleepJson = await AsyncStorage.getItem(`sleep_${user?.id}`);
-      const moodJson = await AsyncStorage.getItem(`mood_${user?.id}`);
+      const [testsResponse, sleepResponse, moodResponse] = await Promise.all([
+        api.getTests().catch(() => ({ tests: [] })),
+        api.getSleepRecords().catch(() => ({ records: [] })),
+        api.getMoodEntries().catch(() => ({ entries: [] }))
+      ]);
       
-      const tests = testsJson ? JSON.parse(testsJson) : [];
-      const sleepData = sleepJson ? JSON.parse(sleepJson) : [];
-      const moodData = moodJson ? JSON.parse(moodJson) : [];
+      const tests = testsResponse.tests || [];
+      const sleepData = sleepResponse.records || [];
+      const moodData = moodResponse.entries || [];
       
       const avgSleep = sleepData.length > 0 
         ? sleepData.reduce((sum, day) => sum + day.hours, 0) / sleepData.length 
@@ -96,21 +99,12 @@ export default function HomeScreen({ navigation, userData }) {
         avgSleepHours: Math.round(avgSleep * 10) / 10,
         moodScore: Math.round(avgMood * 10) / 10
       });
-      
-      // Загружаем сегодняшнее настроение
-      const today = new Date().toDateString();
-      const todayMoodEntry = moodData.find(entry => 
-        new Date(entry.date).toDateString() === today
-      );
-      
-      if (todayMoodEntry) {
-        const moodOption = moodOptions.find(m => m.value === todayMoodEntry.value);
-        setTodayMood(moodOption);
-      }
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.log('Нет данных для нового пользователя');
+      setStats({ testsCompleted: 0, avgSleepHours: 0, moodScore: 0 });
     }
   };
+
 
   const onRefresh = async () => {
     setRefreshing(true);

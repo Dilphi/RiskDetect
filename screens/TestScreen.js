@@ -18,6 +18,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/TestStyles';
+import api from '../services/api'
 
 // Реальные психологические тесты с локализацией
 const getTests = (t) => [
@@ -281,10 +282,11 @@ export default function TestScreen({ navigation, userData }) {
 
   const loadCompletedTests = async () => {
     try {
-      const testsJson = await AsyncStorage.getItem(`tests_${userData?.id}`);
-      setCompletedTests(testsJson ? JSON.parse(testsJson) : []);
+      const response = await api.getTests();
+      setCompletedTests(response.tests || []);
     } catch (error) {
-      console.error('Error loading tests:', error);
+      console.log('Нет пройденных тестов');
+      setCompletedTests([]);
     }
   };
 
@@ -394,11 +396,8 @@ export default function TestScreen({ navigation, userData }) {
     setShowResultModal(true);
 
     try {
-      const testsJson = await AsyncStorage.getItem(`tests_${userData?.id}`);
-      let tests = testsJson ? JSON.parse(testsJson) : [];
-      tests.push(result);
-      await AsyncStorage.setItem(`tests_${userData?.id}`, JSON.stringify(tests));
-      setCompletedTests(tests);
+      await api.saveTestResult(result);
+      await loadCompletedTests(); // Обновляем список
     } catch (error) {
       console.error('Error saving test result:', error);
     }

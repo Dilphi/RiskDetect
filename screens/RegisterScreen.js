@@ -19,6 +19,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/RegisterStyles';
+import api from '../services/api'
 
 export default function RegisterScreen({ navigation, setIsAuthenticated, setUserData }) {
   const [formData, setFormData] = useState({
@@ -97,52 +98,28 @@ export default function RegisterScreen({ navigation, setIsAuthenticated, setUser
     return Object.keys(newErrors).length === 0;
   };
 
+ 
   const handleRegister = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      const usersJson = await AsyncStorage.getItem('users');
-      const users = usersJson ? JSON.parse(usersJson) : [];
-      
-      const userExists = users.some(user => 
-        user.email.toLowerCase() === formData.email.toLowerCase()
-      );
-      
-      if (userExists) {
-        Alert.alert(t('common.error'), t('auth.user_exists'));
-        setLoading(false);
-        return;
-      }
-      
-      const newUser = {
-        id: Date.now().toString(),
-        ...formData,
+      const response = await api.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
         age: formData.age ? parseInt(formData.age) : null,
-        registrationDate: new Date().toISOString(),
-        riskLevel: t('home.low_risk'),
-        riskPoints: 0,
-        tests: [],
-        sleepData: [],
-        journalEntries: [],
-        moodEntries: [],
-      };
-      
-      delete newUser.confirmPassword;
-      
-      const updatedUsers = [...users, newUser];
-      await AsyncStorage.setItem('users', JSON.stringify(updatedUsers));
-      await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));
-      await AsyncStorage.setItem('isAuthenticated', 'true');
-      
-      setUserData(newUser);
-      setIsAuthenticated(true);
-      
+        gender: formData.gender,
+        occupation: formData.occupation
+      });
+
+      if (response.success) {
+        setUserData(response.user);
+        setIsAuthenticated(true);
+      }
     } catch (error) {
-      Alert.alert(t('common.error'), t('auth.registration_failed'));
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }

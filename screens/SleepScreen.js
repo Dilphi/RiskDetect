@@ -20,6 +20,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/SleepStyles';
+import api from '../services/api'
 
 export default function SleepScreen({ userData }) {
   const [sleepData, setSleepData] = useState([]);
@@ -102,17 +103,18 @@ export default function SleepScreen({ userData }) {
     }
   };
 
-  const loadSleepData = async (userId) => {
+  const loadSleepData = async () => {
     try {
-      const data = await AsyncStorage.getItem(`sleep_${userId}`);
-      const parsedData = data ? JSON.parse(data) : [];
-      const sortedData = parsedData.sort((a, b) => 
-        new Date(b.date) - new Date(a.date)
-      );
-      setSleepData(sortedData);
+      const response = await api.getSleepRecords();
+      // Проверяем, что данные существуют и это массив
+      if (response && response.records && Array.isArray(response.records)) {
+        setSleepData(response.records);
+      } else {
+        setSleepData([]); // Пустой массив, если данных нет
+      }
     } catch (error) {
-      console.error('Error loading sleep data:', error);
-      Alert.alert('❌ ' + t('common.error'), t('sleep.sleep_data_load_error'));
+      console.log('Нет данных сна или ошибка загрузки');
+      setSleepData([]); // При ошибке тоже ставим пустой массив
     } finally {
       setLoading(false);
     }
@@ -147,37 +149,23 @@ export default function SleepScreen({ userData }) {
     if (!validateDate()) return;
 
     const hours = calculateSleepHours();
-    const userId = currentUser?.id || userData?.id;
-    if (!userId) {
-      Alert.alert('❌ ' + t('common.error'), t('sleep.user_not_identified'));
-      return;
-    }
-
     setSaving(true);
 
     try {
-      const newRecord = {
-        id: Date.now().toString(),
+      await api.saveSleepRecord({
         date: selectedDate.toISOString(),
         bedTime: bedTime.toISOString(),
         wakeTime: wakeTime.toISOString(),
         hours: hours,
         quality: quality,
-        notes: notes.trim() || '',
-        qualityLabel: qualityOptions.find(q => q.value === quality)?.label,
-        qualityEmoji: qualityOptions.find(q => q.value === quality)?.emoji,
-        qualityColor: qualityOptions.find(q => q.value === quality)?.color,
-        createdAt: new Date().toISOString()
-      };
-
-      const updatedData = [newRecord, ...sleepData];
-      await AsyncStorage.setItem(`sleep_${userId}`, JSON.stringify(updatedData));
-      setSleepData(updatedData);
+        notes: notes.trim() || ''
+      });
+      
+      await loadSleepData(); // Перезагружаем данные
       setShowAddModal(false);
       resetForm();
       Alert.alert('✅ ' + t('common.success'), t('sleep.record_added', { hours: hours }));
     } catch (error) {
-      console.error('Save error:', error);
       Alert.alert('❌ ' + t('common.error'), t('sleep.record_save_error'));
     } finally {
       setSaving(false);
@@ -203,15 +191,10 @@ export default function SleepScreen({ userData }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              const userId = currentUser?.id || userData?.id;
-              if (!userId) throw new Error('No user ID');
-              
-              const updatedData = sleepData.filter(record => record.id !== id);
-              await AsyncStorage.setItem(`sleep_${userId}`, JSON.stringify(updatedData));
-              setSleepData(updatedData);
+              await api.deleteSleepRecord(id);
+              await loadSleepData();
               Alert.alert('✅ ' + t('common.success'), t('sleep.record_deleted'));
             } catch (error) {
-              console.error('Delete error:', error);
               Alert.alert('❌ ' + t('common.error'), t('sleep.delete_error'));
             }
           }

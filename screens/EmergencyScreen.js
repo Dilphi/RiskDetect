@@ -16,6 +16,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/PsychologistStyles';
+import api from '../services/api'
 
 export default function PsychologistScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('chat');

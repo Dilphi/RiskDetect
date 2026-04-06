@@ -18,6 +18,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/StatisticsStyles';
+import api from '../services/api'
 
 export default function StatisticsScreen({ navigation, userData }) {
   const [loading, setLoading] = useState(true);
@@ -76,29 +77,24 @@ export default function StatisticsScreen({ navigation, userData }) {
     }
   };
 
-  const loadAllData = async (userId) => {
+  const loadAllData = async () => {
     try {
-      const testsJson = await AsyncStorage.getItem(`tests_${userId}`);
-      const testsData = testsJson ? JSON.parse(testsJson) : [];
+      const [tests, sleep, mood, journal] = await Promise.all([
+        api.getTests().catch(() => ({ tests: [] })),
+        api.getSleepRecords().catch(() => ({ records: [] })),
+        api.getMoodEntries().catch(() => ({ entries: [] })),
+        api.getJournalEntries().catch(() => ({ entries: [] }))
+      ]);
       
-      const sleepJson = await AsyncStorage.getItem(`sleep_${userId}`);
-      const sleepData = sleepJson ? JSON.parse(sleepJson) : [];
-      
-      const moodJson = await AsyncStorage.getItem(`mood_${userId}`);
-      const moodData = moodJson ? JSON.parse(moodJson) : [];
-      
-      const journalJson = await AsyncStorage.getItem(`journal_${userId}`);
-      const journalData = journalJson ? JSON.parse(journalJson) : [];
-
       setStats({
-        tests: testsData,
-        sleep: sleepData,
-        mood: moodData,
-        journal: journalData
+        tests: tests.tests || [],
+        sleep: sleep.records || [],
+        mood: mood.entries || [],
+        journal: journal.entries || []
       });
     } catch (error) {
-      console.error('Error loading statistics:', error);
-      Alert.alert(t('common.error'), t('statistics.load_error'));
+      console.log('Нет данных для нового пользователя');
+      setStats({ tests: [], sleep: [], mood: [], journal: [] });
     } finally {
       setLoading(false);
       setRefreshing(false);

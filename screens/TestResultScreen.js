@@ -15,6 +15,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/TestResultStyles';
+import api from '../services/api'
 
 export default function TestResultScreen({ route, navigation }) {
   const { result } = route.params;

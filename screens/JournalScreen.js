@@ -19,6 +19,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/JournalStyles';
+import api from '../services/api'
 
 export default function JournalScreen({ navigation, userData }) {
   const [entries, setEntries] = useState([]);
@@ -66,10 +67,11 @@ export default function JournalScreen({ navigation, userData }) {
 
   const loadEntries = async () => {
     try {
-      const data = await AsyncStorage.getItem(`journal_${userData?.id}`);
-      setEntries(data ? JSON.parse(data) : []);
+      const response = await api.getJournalEntries();
+      setEntries(response.entries || []);
     } catch (error) {
-      console.error('Error loading journal entries:', error);
+      console.log('Нет записей в дневнике');
+      setEntries([]);
     } finally {
       setLoading(false);
     }
@@ -86,19 +88,15 @@ export default function JournalScreen({ navigation, userData }) {
       return;
     }
 
-    const entry = {
-      id: Date.now().toString(),
-      ...newEntry,
-      date: new Date().toISOString(),
-      moodEmoji: moodOptions.find(m => m.value === newEntry.mood)?.emoji,
-      moodLabel: moodOptions.find(m => m.value === newEntry.mood)?.label,
-      moodColor: moodOptions.find(m => m.value === newEntry.mood)?.color
-    };
-
     try {
-      const updatedEntries = [entry, ...entries];
-      await AsyncStorage.setItem(`journal_${userData?.id}`, JSON.stringify(updatedEntries));
-      setEntries(updatedEntries);
+      await api.saveJournalEntry({
+        title: newEntry.title,
+        content: newEntry.content,
+        mood: newEntry.mood,
+        tags: newEntry.tags
+      });
+      
+      await loadEntries(); // Перезагружаем
       setShowAddModal(false);
       resetForm();
       Alert.alert(t('common.success'), t('journal.add_success'));
@@ -118,9 +116,8 @@ export default function JournalScreen({ navigation, userData }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              const updatedEntries = entries.filter(entry => entry.id !== id);
-              await AsyncStorage.setItem(`journal_${userData?.id}`, JSON.stringify(updatedEntries));
-              setEntries(updatedEntries);
+              await api.deleteJournalEntry(id);
+              await loadEntries();
               Alert.alert(t('common.success'), t('journal.delete_success'));
             } catch (error) {
               Alert.alert(t('common.error'), t('journal.delete_error'));

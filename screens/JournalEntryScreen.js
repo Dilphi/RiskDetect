@@ -20,6 +20,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/JournalEntryStyles';
+import api from '../services/api'
 
 export default function JournalEntryScreen({ route, navigation }) {
   const { entryId } = route.params;
@@ -54,18 +55,13 @@ export default function JournalEntryScreen({ route, navigation }) {
 
   const loadEntry = async () => {
     try {
-      const userJson = await AsyncStorage.getItem('currentUser');
-      const userData = JSON.parse(userJson);
-      const journalJson = await AsyncStorage.getItem(`journal_${userData.id}`);
-      const journal = journalJson ? JSON.parse(journalJson) : [];
-      const foundEntry = journal.find(e => e.id === entryId);
-      
-      if (foundEntry) {
-        setEntry(foundEntry);
+      const response = await api.getJournalEntry(entryId);
+      if (response.success && response.entry) {
+        setEntry(response.entry);
         setEditForm({
-          title: foundEntry.title,
-          content: foundEntry.content,
-          mood: foundEntry.mood
+          title: response.entry.title,
+          content: response.entry.content,
+          mood: response.entry.mood
         });
       }
     } catch (error) {
@@ -81,26 +77,15 @@ export default function JournalEntryScreen({ route, navigation }) {
 
   const saveEdit = async () => {
     try {
-      const userJson = await AsyncStorage.getItem('currentUser');
-      const userData = JSON.parse(userJson);
-      const journalJson = await AsyncStorage.getItem(`journal_${userData.id}`);
-      let journal = journalJson ? JSON.parse(journalJson) : [];
+      await api.updateJournalEntry(entryId, {
+        title: editForm.title,
+        content: editForm.content,
+        mood: editForm.mood
+      });
       
-      const index = journal.findIndex(e => e.id === entryId);
-      if (index !== -1) {
-        journal[index] = {
-          ...journal[index],
-          title: editForm.title,
-          content: editForm.content,
-          mood: editForm.mood,
-          editedAt: new Date().toISOString()
-        };
-        
-        await AsyncStorage.setItem(`journal_${userData.id}`, JSON.stringify(journal));
-        setEntry(journal[index]);
-        setShowEditModal(false);
-        Alert.alert(t('common.success'), t('journal.entry_updated'));
-      }
+      await loadEntry(); // Перезагружаем
+      setShowEditModal(false);
+      Alert.alert(t('common.success'), t('journal.entry_updated'));
     } catch (error) {
       Alert.alert(t('common.error'), t('journal.entry_update_error'));
     }
@@ -117,14 +102,7 @@ export default function JournalEntryScreen({ route, navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              const userJson = await AsyncStorage.getItem('currentUser');
-              const userData = JSON.parse(userJson);
-              const journalJson = await AsyncStorage.getItem(`journal_${userData.id}`);
-              let journal = journalJson ? JSON.parse(journalJson) : [];
-              
-              journal = journal.filter(e => e.id !== entryId);
-              await AsyncStorage.setItem(`journal_${userData.id}`, JSON.stringify(journal));
-              
+              await api.deleteJournalEntry(entryId);
               Alert.alert(t('common.success'), t('journal.delete_success'));
               navigation.goBack();
             } catch (error) {

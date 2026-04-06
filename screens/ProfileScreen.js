@@ -26,6 +26,7 @@ import { useTranslation } from '../components/Translation';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import styles from '../styles/ProfileStyles';
+import api from '../services/api'
 
 export default function ProfileScreen({ navigation, userData, onLogout }) {
   const [user, setUser] = useState(userData);
@@ -87,9 +88,9 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
   const loadUserData = async () => {
     try {
-      const userJson = await AsyncStorage.getItem('currentUser');
-      if (userJson) {
-        setUser(JSON.parse(userJson));
+      const response = await api.getMe();
+      if (response.success) {
+        setUser(response.user);
       }
     } catch (error) {
       console.error('Error loading user:', error);
@@ -109,23 +110,22 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
   const loadStats = async () => {
     try {
-      const userId = user?.id || userData?.id;
-      if (!userId) return;
-
-      const testsJson = await AsyncStorage.getItem(`tests_${userId}`);
-      const sleepJson = await AsyncStorage.getItem(`sleep_${userId}`);
-      const moodJson = await AsyncStorage.getItem(`mood_${userId}`);
+      const [tests, sleep, mood] = await Promise.all([
+        api.getTests().catch(() => ({ tests: [] })),
+        api.getSleepRecords().catch(() => ({ records: [] })),
+        api.getMoodEntries().catch(() => ({ entries: [] }))
+      ]);
       
       setStats({
-        tests: testsJson ? JSON.parse(testsJson).length : 0,
-        sleep: sleepJson ? JSON.parse(sleepJson).length : 0,
-        mood: moodJson ? JSON.parse(moodJson).length : 0
+        tests: tests.tests?.length || 0,
+        sleep: sleep.records?.length || 0,
+        mood: mood.entries?.length || 0
       });
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.log('Нет статистики для нового пользователя');
+      setStats({ tests: 0, sleep: 0, mood: 0 });
     }
   };
-
   useEffect(() => {
     if (user) {
       setEditForm({
@@ -240,6 +240,7 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
+    await api.logout();
     if (onLogout) {
       await onLogout();
     }
@@ -250,33 +251,22 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
   };
 
   const saveProfile = async () => {
-    try {
-      const updatedUser = {
-        ...user,
-        name: editForm.name,
-        age: editForm.age ? parseInt(editForm.age) : null,
-        occupation: editForm.occupation
-      };
-
-      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      
-      const usersJson = await AsyncStorage.getItem('users');
-      if (usersJson) {
-        const users = JSON.parse(usersJson);
-        const index = users.findIndex(u => u.id === user.id);
-        if (index !== -1) {
-          users[index] = updatedUser;
-          await AsyncStorage.setItem('users', JSON.stringify(users));
-        }
-      }
-
-      setUser(updatedUser);
+  try {
+    const response = await api.updateProfile({
+      name: editForm.name,
+      age: editForm.age ? parseInt(editForm.age) : null,
+      occupation: editForm.occupation
+    });
+    
+    if (response.success) {
+      setUser(response.user);
       setShowEditModal(false);
       Alert.alert(t('common.success'), t('profile.profile_updated'));
-    } catch (error) {
-      Alert.alert(t('common.error'), t('profile.profile_update_error'));
     }
-  };
+  } catch (error) {
+    Alert.alert(t('common.error'), t('profile.profile_update_error'));
+  }
+};
 
   const handleNotificationsToggle = async (value) => {
     if (value && permissionStatus !== 'granted') {
@@ -304,24 +294,9 @@ export default function ProfileScreen({ navigation, userData, onLogout }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              const usersJson = await AsyncStorage.getItem('users');
-              if (usersJson) {
-                const users = JSON.parse(usersJson);
-                const filteredUsers = users.filter(u => u.id !== user.id);
-                await AsyncStorage.setItem('users', JSON.stringify(filteredUsers));
-              }
-              
-              await AsyncStorage.removeItem('currentUser');
-              await AsyncStorage.removeItem('isAuthenticated');
-              await AsyncStorage.removeItem(`tests_${user.id}`);
-              await AsyncStorage.removeItem(`sleep_${user.id}`);
-              await AsyncStorage.removeItem(`mood_${user.id}`);
-              await AsyncStorage.removeItem(`journal_${user.id}`);
-              await AsyncStorage.removeItem('userAvatar');
-              
-              if (onLogout) {
-                await onLogout();
-              }
+              await api.deleteAccount();
+              await api.logout();
+              if (onLogout) await onLogout();
             } catch (error) {
               Alert.alert(t('common.error'), t('profile.delete_error'));
             }

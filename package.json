@@ -24,12 +24,19 @@
     "expo-navigation-bar": "~5.0.10",
     "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
+    "pg": "^8.20.0",
+    "pg-hstore": "^2.3.4",
+    "pg-pool": "^3.13.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-ble-plx": "^3.5.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-vector-icons": "^10.3.0"
+    "react-native-vector-icons": "^10.3.0",
+    "sequelize": "^6.37.8"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
+  }
 }
