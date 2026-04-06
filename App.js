@@ -11,7 +11,23 @@ import { NotificationProvider } from './components/NotificationContext';
 import { TranslationProvider, useTranslation } from './components/Translation'; 
 import { ScreenWrapper } from './components/ScreenWrapper';
 
-// ... все импорты экранов остаются без изменений ...
+
+import HomeScreen from './screens/HomeScreen';
+
+import SleepScreen from './screens/SleepScreen';
+import ScanScreen from './screens/ScanScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import AuthScreen from './screens/AuthScreen';
+import RegisterScreen from './screens/RegisterScreen';
+import TestScreen from './screens/TestScreen';
+import TestResultScreen from './screens/TestResultScreen';
+import JournalScreen from './screens/JournalScreen';
+import JournalEntryScreen from './screens/JournalEntryScreen';
+import PsychologistScreen from './screens/PsychologistScreen';
+import EmergencyScreen from './screens/EmergencyScreen';
+import StatisticsScreen from './screens/StatisticsScreen';
+
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
