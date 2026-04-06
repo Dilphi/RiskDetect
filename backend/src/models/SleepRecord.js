@@ -1,17 +1,64 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database.js');
 
-const SleepRecordSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
-  date: { type: Date, required: true },
-  bedTime: { type: Date, required: true },
-  wakeTime: { type: Date, required: true },
-  hours: { type: Number, required: true, min: 0, max: 24 },
-  quality: { type: Number, required: true, min: 1, max: 5 },
-  qualityLabel: { type: String },
-  qualityEmoji: { type: String },
-  qualityColor: { type: String },
-  notes: { type: String, default: '' },
-  createdAt: { type: Date, default: Date.now }
+const SleepRecord = sequelize.define('SleepRecord', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'customers',
+      key: 'id'
+    }
+  },
+  date: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  bedTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  wakeTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  hours: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    validate: {
+      min: 0,
+      max: 24
+    }
+  },
+  quality: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: {
+      min: 1,
+      max: 5
+    }
+  },
+  qualityLabel: {
+    type: DataTypes.STRING
+  },
+  qualityEmoji: {
+    type: DataTypes.STRING
+  },
+  qualityColor: {
+    type: DataTypes.STRING
+  },
+  notes: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  }
+}, {
+  tableName: 'sleep_records',
+  timestamps: true
 });
 
-module.exports = mongoose.model('SleepRecord', SleepRecordSchema);
+module.exports = SleepRecord;

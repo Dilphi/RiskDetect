@@ -1,22 +1,22 @@
-const JournalEntry = require('../models/JournalEntry');
+const { JournalEntry } = require('../models');
 
 // Сохранить запись дневника
 exports.saveEntry = async (req, res) => {
   try {
     const { title, content, mood, tags } = req.body;
 
-    const entry = new JournalEntry({
+    const entry = await JournalEntry.create({
+      id: require('crypto').randomUUID(),
       userId: req.userId,
       title,
       content,
-      mood,
-      tags: tags || [],
-      date: new Date()
+      mood: mood || 3,
+      tags: tags || []
     });
 
-    await entry.save();
     res.status(201).json({ success: true, entry });
   } catch (error) {
+    console.error('Ошибка сохранения записи дневника:', error);
     res.status(500).json({ message: 'Ошибка сохранения записи', error: error.message });
   }
 };
@@ -24,9 +24,13 @@ exports.saveEntry = async (req, res) => {
 // Получить все записи дневника
 exports.getEntries = async (req, res) => {
   try {
-    const entries = await JournalEntry.find({ userId: req.userId }).sort({ date: -1 });
+    const entries = await JournalEntry.findAll({ 
+      where: { userId: req.userId },
+      order: [['createdAt', 'DESC']]
+    });
     res.json({ success: true, entries });
   } catch (error) {
+    console.error('Ошибка загрузки дневника:', error);
     res.status(500).json({ message: 'Ошибка загрузки записей', error: error.message });
   }
 };
@@ -34,12 +38,15 @@ exports.getEntries = async (req, res) => {
 // Получить одну запись
 exports.getEntryById = async (req, res) => {
   try {
-    const entry = await JournalEntry.findOne({ _id: req.params.id, userId: req.userId });
+    const entry = await JournalEntry.findOne({ 
+      where: { id: req.params.id, userId: req.userId }
+    });
     if (!entry) {
       return res.status(404).json({ message: 'Запись не найдена' });
     }
     res.json({ success: true, entry });
   } catch (error) {
+    console.error('Ошибка загрузки записи:', error);
     res.status(500).json({ message: 'Ошибка загрузки записи', error: error.message });
   }
 };
@@ -49,18 +56,25 @@ exports.updateEntry = async (req, res) => {
   try {
     const { title, content, mood, tags } = req.body;
     
-    const entry = await JournalEntry.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      { title, content, mood, tags, editedAt: new Date() },
-      { new: true }
-    );
-
+    const entry = await JournalEntry.findOne({ 
+      where: { id: req.params.id, userId: req.userId }
+    });
+    
     if (!entry) {
       return res.status(404).json({ message: 'Запись не найдена' });
     }
 
+    await entry.update({
+      title,
+      content,
+      mood: mood || 3,
+      tags: tags || [],
+      editedAt: new Date()
+    });
+
     res.json({ success: true, entry });
   } catch (error) {
+    console.error('Ошибка обновления записи:', error);
     res.status(500).json({ message: 'Ошибка обновления записи', error: error.message });
   }
 };
@@ -68,9 +82,12 @@ exports.updateEntry = async (req, res) => {
 // Удалить запись
 exports.deleteEntry = async (req, res) => {
   try {
-    await JournalEntry.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    await JournalEntry.destroy({ 
+      where: { id: req.params.id, userId: req.userId }
+    });
     res.json({ success: true, message: 'Запись удалена' });
   } catch (error) {
+    console.error('Ошибка удаления записи:', error);
     res.status(500).json({ message: 'Ошибка удаления', error: error.message });
   }
 };

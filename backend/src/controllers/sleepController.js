@@ -1,23 +1,28 @@
-const SleepRecord = require('../models/SleepRecord');
+const { SleepRecord } = require('../models');
 
 // Сохранить запись сна
 exports.saveSleepRecord = async (req, res) => {
+  console.log('📝 Получены данные сна:', req.body); // Логируем
+  console.log('👤 userId:', req.userId);
+  
   try {
     const { date, bedTime, wakeTime, hours, quality, notes } = req.body;
-
-    const sleepRecord = new SleepRecord({
+    
+    const record = await SleepRecord.create({
+      id: require('crypto').randomUUID(),
       userId: req.userId,
       date,
       bedTime,
       wakeTime,
       hours,
       quality,
-      notes
+      notes: notes || ''
     });
-
-    await sleepRecord.save();
-    res.status(201).json({ success: true, sleepRecord });
+    
+    console.log('✅ Запись сна сохранена:', record.id);
+    res.status(201).json({ success: true, record });
   } catch (error) {
+    console.error('❌ Ошибка сохранения сна:', error);
     res.status(500).json({ message: 'Ошибка сохранения записи сна', error: error.message });
   }
 };
@@ -25,9 +30,14 @@ exports.saveSleepRecord = async (req, res) => {
 // Получить все записи сна
 exports.getSleepRecords = async (req, res) => {
   try {
-    const records = await SleepRecord.find({ userId: req.userId }).sort({ date: -1 });
+    const records = await SleepRecord.findAll({ 
+      where: { userId: req.userId },
+      order: [['date', 'DESC']]
+    });
+    console.log(`📊 Загружено ${records.length} записей сна`);
     res.json({ success: true, records });
   } catch (error) {
+    console.error('❌ Ошибка загрузки сна:', error);
     res.status(500).json({ message: 'Ошибка загрузки записей сна', error: error.message });
   }
 };
@@ -35,7 +45,7 @@ exports.getSleepRecords = async (req, res) => {
 // Получить статистику сна
 exports.getSleepStats = async (req, res) => {
   try {
-    const records = await SleepRecord.find({ userId: req.userId });
+    const records = await SleepRecord.findAll({ where: { userId: req.userId } });
     
     if (records.length === 0) {
       return res.json({ success: true, stats: { count: 0, avgHours: 0, avgQuality: 0, totalHours: 0 } });
@@ -53,6 +63,7 @@ exports.getSleepStats = async (req, res) => {
 
     res.json({ success: true, stats });
   } catch (error) {
+    console.error('❌ Ошибка статистики сна:', error);
     res.status(500).json({ message: 'Ошибка загрузки статистики', error: error.message });
   }
 };
@@ -61,9 +72,10 @@ exports.getSleepStats = async (req, res) => {
 exports.deleteSleepRecord = async (req, res) => {
   try {
     const { id } = req.params;
-    await SleepRecord.findOneAndDelete({ _id: id, userId: req.userId });
-    res.json({ success: true, message: 'Запись удалена' });
+    await SleepRecord.destroy({ where: { id, userId: req.userId } });
+    res.json({ success: true, message: 'Запись сна удалена' });
   } catch (error) {
+    console.error('❌ Ошибка удаления сна:', error);
     res.status(500).json({ message: 'Ошибка удаления', error: error.message });
   }
 };

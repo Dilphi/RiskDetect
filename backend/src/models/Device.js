@@ -1,16 +1,60 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database.js');
 
-const DeviceSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
-  deviceId: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  model: { type: String, required: true },
-  serialNumber: { type: String, unique: true },
-  battery: { type: Number, default: 100, min: 0, max: 100 },
-  firmware: { type: String, default: '1.0.0' },
-  connectedAt: { type: Date, default: Date.now },
-  lastSync: { type: Date, default: null },
-  isActive: { type: Boolean, default: true }
+const Device = sequelize.define('Device', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'customers',
+      key: 'id'
+    }
+  },
+  deviceId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  model: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  serialNumber: {
+    type: DataTypes.STRING,
+    unique: true
+  },
+  battery: {
+    type: DataTypes.INTEGER,
+    defaultValue: 100
+  },
+  firmware: {
+    type: DataTypes.STRING,
+    defaultValue: '1.0.0'
+  },
+  connectedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  lastSync: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  }
+}, {
+  tableName: 'devices',
+  timestamps: true
 });
 
-module.exports = mongoose.model('Device', DeviceSchema);
+module.exports = Device;

@@ -1,29 +1,68 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
-const CustomerSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
-  age: { type: Number, default: null },
-  gender: { type: String, enum: ['Мужской', 'Женский', 'Другой', ''], default: '' },
-  occupation: { type: String, default: '' },
-  registrationDate: { type: Date, default: Date.now },
-  riskLevel: { type: String, enum: ['низкий', 'умеренный', 'высокий'], default: 'низкий' },
-  riskPoints: { type: Number, default: 0 },
-  avatar: { type: String, default: null } // base64 или URL
+const Customer = sequelize.define('Customer', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  age: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  gender: {
+    type: DataTypes.STRING, // Убираем ENUM
+    defaultValue: ''
+  },
+  occupation: {
+    type: DataTypes.STRING,
+    defaultValue: ''
+  },
+  registrationDate: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  riskLevel: {
+    type: DataTypes.STRING, // Убираем ENUM
+    defaultValue: 'низкий'
+  },
+  riskPoints: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  avatar: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  }
+}, {
+  tableName: 'customers',
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (customer) => {
+      if (customer.password) {
+        customer.password = await bcrypt.hash(customer.password, 10);
+      }
+    }
+  }
 });
 
-// Хеширование пароля перед сохранением
-CustomerSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-// Сравнение пароля
-CustomerSchema.methods.comparePassword = async function(password) {
+Customer.prototype.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model('Customer', CustomerSchema);
+module.exports = Customer;

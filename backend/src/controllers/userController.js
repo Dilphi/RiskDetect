@@ -1,9 +1,11 @@
-const User = require('../models/Customers');
+const { Customer } = require('../models');
 
 // Получить всех пользователей
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await Customer.findAll({
+      attributes: { exclude: ['password'] }
+    });
     res.json({ success: true, users });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка загрузки пользователей', error: error.message });
@@ -13,7 +15,9 @@ exports.getAllUsers = async (req, res) => {
 // Получить пользователя по ID
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await Customer.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
@@ -27,17 +31,24 @@ exports.getUserById = async (req, res) => {
 exports.updateRiskLevel = async (req, res) => {
   try {
     const { riskLevel, riskPoints } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { riskLevel, riskPoints },
-      { new: true }
-    ).select('-password');
+    const user = await Customer.findByPk(req.params.id);
     
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
     
-    res.json({ success: true, user });
+    await user.update({ riskLevel, riskPoints });
+    
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        riskLevel: user.riskLevel,
+        riskPoints: user.riskPoints
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка обновления уровня риска', error: error.message });
   }

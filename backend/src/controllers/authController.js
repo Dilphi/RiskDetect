@@ -1,6 +1,5 @@
-const User = require('../models/Customers');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const { Customer } = require('../models');
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -8,33 +7,41 @@ const generateToken = (userId) => {
 
 // Регистрация
 exports.register = async (req, res) => {
+  console.log('📝 Получены данные регистрации:', req.body); // Логируем
+    
   try {
     const { name, email, password, age, gender, occupation } = req.body;
-
-    const existingUser = await User.findOne({ email });
+    
+    // Проверка обязательных полей
+    if (!name || !email || !password) {
+      return res.status(400).json({ 
+        message: 'Заполните все обязательные поля',
+        error: 'Missing required fields' 
+      });
+    }
+    
+    const existingUser = await Customer.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'Пользователь уже существует' });
     }
-
-    const user = new User({
+    
+    const user = await Customer.create({
       name,
       email,
       password,
-      age,
-      gender,
-      occupation,
+      age: age || null,
+      gender: gender || '',
+      occupation: occupation || '',
       registrationDate: new Date()
     });
-
-    await user.save();
-
-    const token = generateToken(user._id);
-
+    
+    const token = generateToken(user.id);
+    
     res.status(201).json({
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         age: user.age,
@@ -45,7 +52,11 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Ошибка регистрации', error: error.message });
+    console.error('❌ Ошибка регистрации:', error);
+    res.status(500).json({ 
+      message: 'Ошибка регистрации', 
+      error: error.message 
+    });
   }
 };
 
@@ -54,7 +65,7 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await Customer.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({ message: 'Неверный email или пароль' });
     }
@@ -64,13 +75,13 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Неверный email или пароль' });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     res.json({
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         age: user.age,
@@ -88,7 +99,9 @@ exports.login = async (req, res) => {
 // Получить текущего пользователя
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await Customer.findByPk(req.userId, {
+      attributes: { exclude: ['password'] }
+    });
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
@@ -103,17 +116,26 @@ exports.updateProfile = async (req, res) => {
   try {
     const { name, age, gender, occupation } = req.body;
     
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { name, age, gender, occupation },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    const user = await Customer.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
 
-    res.json({ success: true, user });
+    await user.update({ name, age, gender, occupation });
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        age: user.age,
+        gender: user.gender,
+        occupation: user.occupation,
+        registrationDate: user.registrationDate,
+        riskLevel: user.riskLevel
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка обновления профиля', error: error.message });
   }
@@ -122,7 +144,7 @@ exports.updateProfile = async (req, res) => {
 // Удалить аккаунт
 exports.deleteAccount = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.userId);
+    await Customer.destroy({ where: { id: req.userId } });
     res.json({ success: true, message: 'Аккаунт удален' });
   } catch (error) {
     res.status(500).json({ message: 'Ошибка удаления аккаунта', error: error.message });

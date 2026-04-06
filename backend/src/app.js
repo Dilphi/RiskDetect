@@ -9,6 +9,8 @@ const sleepRoutes = require('./routes/sleepRoutes');
 const moodRoutes = require('./routes/moodRoutes');
 const journalRoutes = require('./routes/journalRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
+// ❌ УДАЛИТЕ ЭТУ СТРОКУ:
+// const { default: api } = require('../../services/api');
 
 const app = express();
 

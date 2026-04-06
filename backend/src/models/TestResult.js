@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database.js');
 
-const JournalEntry = sequelize.define('JournalEntry', {
+const TestResult = sequelize.define('TestResult', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -15,48 +15,52 @@ const JournalEntry = sequelize.define('JournalEntry', {
       key: 'id'
     }
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  mood: {
+  testId: {
     type: DataTypes.INTEGER,
-    defaultValue: 3
+    allowNull: false
   },
-  moodEmoji: {
+  testTitle: {
     type: DataTypes.STRING,
-    defaultValue: '😐'
+    allowNull: false
   },
-  moodLabel: {
+  score: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  maxScore: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  percentage: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  level: {
     type: DataTypes.STRING,
-    defaultValue: 'Нормально'
+    allowNull: false
   },
-  moodColor: {
-    type: DataTypes.STRING,
-    defaultValue: '#f39c12'
+  description: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
   },
-  tags: {
+  recommendations: {
     type: DataTypes.TEXT,
     defaultValue: '[]',
     get() {
-      const raw = this.getDataValue('tags');
+      const raw = this.getDataValue('recommendations');
       return raw ? JSON.parse(raw) : [];
     },
     set(value) {
-      this.setDataValue('tags', JSON.stringify(value));
+      this.setDataValue('recommendations', JSON.stringify(value));
     }
   },
-  editedAt: {
+  date: {
     type: DataTypes.DATE,
-    allowNull: true
+    defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'journal_entries',
+  tableName: 'test_results',
   timestamps: true
 });
 
-module.exports = JournalEntry;
+module.exports = TestResult;

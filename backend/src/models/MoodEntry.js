@@ -1,12 +1,47 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database.js');
 
-const MoodEntrySchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
-  value: { type: Number, required: true, min: 1, max: 5 },
-  label: { type: String, required: true },
-  emoji: { type: String, required: true },
-  note: { type: String, default: '' },
-  date: { type: Date, default: Date.now }
+const MoodEntry = sequelize.define('MoodEntry', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'customers', 
+      key: 'id'
+    }
+  },
+  value: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: {
+      min: 1,
+      max: 5
+    }
+  },
+  label: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  emoji: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  note: {
+    type: DataTypes.TEXT,
+    defaultValue: ''
+  },
+  date: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+}, {
+  tableName: 'mood_entries',
+  timestamps: true
 });
 
-module.exports = mongoose.model('MoodEntry', MoodEntrySchema);
+module.exports = MoodEntry;
